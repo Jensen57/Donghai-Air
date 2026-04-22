@@ -67,7 +67,7 @@ export default function LoginOverlay({ isOpen, onClose }: LoginOverlayProps) {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[100] bg-black/60 flex items-end justify-center"
+          className="absolute inset-0 z-[100] bg-black/60 flex items-end justify-center"
         >
           <motion.div 
             initial={{ y: '100%' }}

@@ -180,7 +180,7 @@ export default function HelpCenter({ onBack, initialSearch = '' }: { onBack: () 
       {/* Feedback Overlay */}
       <AnimatePresence>
         {isConnecting && (
-          <div className="fixed inset-0 z-[100] bg-black/40 backdrop-blur-sm flex items-center justify-center p-6">
+          <div className="absolute inset-0 z-[100] bg-black/40 backdrop-blur-sm flex items-center justify-center p-6">
             <motion.div 
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
@@ -193,7 +193,7 @@ export default function HelpCenter({ onBack, initialSearch = '' }: { onBack: () 
         )}
 
         {showFeedback && (
-          <div className="fixed inset-0 z-[100] bg-black/40 backdrop-blur-sm flex items-center justify-center p-6">
+          <div className="absolute inset-0 z-[100] bg-black/40 backdrop-blur-sm flex items-center justify-center p-6">
             <motion.div 
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}

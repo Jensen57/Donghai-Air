@@ -48,7 +48,7 @@ function NotificationToast({ onClick }: { onClick?: () => void }) {
               hideNotification();
             }
           }}
-          className="fixed top-6 left-4 right-4 z-[1000] max-w-md mx-auto"
+          className="absolute top-6 left-4 right-4 z-[1000]"
         >
           <div 
             onClick={() => {
@@ -212,9 +212,10 @@ function AppContent() {
   };
 
   return (
-    <div ref={constraintsRef} className="max-w-md mx-auto h-screen bg-gray-50 relative overflow-hidden flex flex-col shadow-2xl">
-      <MiniProgramCapsule />
-      <NotificationToast onClick={() => setShowMessages(true)} />
+    <div className="min-h-screen bg-[#1c1c1e] flex items-center justify-center p-0 sm:p-4">
+      <div ref={constraintsRef} className="w-full max-w-[430px] h-screen sm:h-[844px] bg-gray-50 relative overflow-hidden flex flex-col shadow-2xl sm:rounded-[32px] sm:border-[8px] sm:border-black">
+        <MiniProgramCapsule />
+        <NotificationToast onClick={() => setShowMessages(true)} />
       {/* Global Customer Service Button */}
       {!showCheckout && !afterSalesInfo && !showCompensation && !showEmployeeAuth && !showEmployeeMall && !showInternalOrders && !showBuyPoints && !showPointsMall && !showPointsCenter && !showMessages && (
         <motion.div 
@@ -222,7 +223,7 @@ function AppContent() {
           dragMomentum={false}
           dragConstraints={constraintsRef}
           onClick={() => setShowCustomerService(true)}
-          className="fixed top-24 right-4 z-[100] w-12 h-12 rounded-full bg-white/90 backdrop-blur-md shadow-2xl flex items-center justify-center cursor-move active:scale-95 transition-transform border border-donghai/20"
+          className="absolute top-24 right-4 z-[100] w-12 h-12 rounded-full bg-white/90 backdrop-blur-md shadow-2xl flex items-center justify-center cursor-move active:scale-95 transition-transform border border-donghai/20"
         >
           <Headphones className="w-6 h-6 text-donghai" />
           <div className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full border-2 border-white flex items-center justify-center">
@@ -312,6 +313,7 @@ function AppContent() {
           setShowHelpCenter(true);
         }}
       />
+      </div>
     </div>
   );
 }

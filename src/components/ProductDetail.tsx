@@ -222,7 +222,7 @@ export default function ProductDetail({
   return (
     <div className="flex flex-col h-full bg-gray-50">
       {/* Header */}
-      <div className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-4 pt-12 pb-4 pointer-events-none">
+      <div className="absolute top-0 left-0 right-0 z-50 flex items-center justify-between px-4 pt-12 pb-4 pointer-events-none">
         <div className="flex gap-3 pointer-events-auto">
           <Button 
             variant="ghost" 
@@ -451,7 +451,7 @@ export default function ProductDetail({
       </div>
 
       {/* Bottom Action Bar */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-xl border-t border-gray-100 px-6 py-4 pb-8 flex items-center gap-6 z-[110] shadow-[0_-10px_30px_rgba(0,0,0,0.08)] max-w-md mx-auto">
+      <div className="absolute bottom-0 left-0 right-0 bg-white/95 backdrop-blur-xl border-t border-gray-100 px-6 py-4 pb-8 flex items-center gap-6 z-[110] shadow-[0_-10px_30px_rgba(0,0,0,0.08)]">
         <div className="flex items-center gap-6 pr-2">
           <div className="flex flex-col items-center gap-1 cursor-pointer" onClick={onShowCustomerService}>
             <MessageCircle className="w-5 h-5 text-gray-500" />
@@ -497,7 +497,7 @@ export default function ProductDetail({
       {/* Share Sheet */}
       <AnimatePresence>
         {showShare && (
-          <div className="fixed inset-0 z-[100] bg-black/60 flex items-end">
+          <div className="absolute inset-0 z-[100] bg-black/60 flex items-end">
             <motion.div 
               initial={{ y: '100%' }}
               animate={{ y: 0 }}
@@ -535,7 +535,7 @@ export default function ProductDetail({
             initial={{ opacity: 0, y: 20, x: '-50%' }}
             animate={{ opacity: 1, y: 0, x: '-50%' }}
             exit={{ opacity: 0, y: 20, x: '-50%' }}
-            className="fixed bottom-24 left-1/2 z-[200] bg-black/80 backdrop-blur-md text-white px-6 py-3 rounded-full flex items-center gap-2"
+            className="absolute bottom-24 left-1/2 z-[200] bg-black/80 backdrop-blur-md text-white px-6 py-3 rounded-full flex items-center gap-2"
           >
             <Check className="w-4 h-4 text-green-400" />
             <span className="text-xs font-bold">加入购物车成功</span>
@@ -550,7 +550,7 @@ export default function ProductDetail({
             initial={{ opacity: 0, y: 20, x: '-50%' }}
             animate={{ opacity: 1, y: 0, x: '-50%' }}
             exit={{ opacity: 0, y: 20, x: '-50%' }}
-            className="fixed bottom-24 left-1/2 z-[200] bg-black/80 backdrop-blur-md text-white px-6 py-3 rounded-full flex items-center gap-2"
+            className="absolute bottom-24 left-1/2 z-[200] bg-black/80 backdrop-blur-md text-white px-6 py-3 rounded-full flex items-center gap-2"
           >
             <Heart className="w-4 h-4 text-red-500 fill-current" />
             <span className="text-xs font-bold">收藏成功</span>
@@ -561,7 +561,7 @@ export default function ProductDetail({
       {/* Error Message Overlay */}
       <AnimatePresence>
         {errorMsg && (
-          <div className="fixed inset-0 z-[200] flex items-center justify-center px-6">
+          <div className="absolute inset-0 z-[200] flex items-center justify-center px-6">
             <motion.div 
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}

@@ -19,7 +19,7 @@ export default function BottomNav({ activeTab, setActiveTab, onShowLogin }: Bott
   ];
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-xl border-t border-gray-100 flex items-center justify-around h-[76px] pb-5 px-4 z-[100] shadow-[0_-8px_30px_rgba(0,0,0,0.04)] max-w-md mx-auto">
+    <div className="absolute bottom-0 left-0 right-0 bg-white/95 backdrop-blur-xl border-t border-gray-100 flex items-center justify-around h-[76px] pb-5 px-4 z-[100] shadow-[0_-8px_30px_rgba(0,0,0,0.04)]">
       {navItems.map((item) => {
         const Icon = item.icon;
         const isActive = activeTab === item.id;

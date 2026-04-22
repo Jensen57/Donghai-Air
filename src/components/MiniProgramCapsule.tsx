@@ -57,7 +57,7 @@ export default function MiniProgramCapsule() {
 
   return (
     <>
-      <div className="fixed top-3 right-3 z-[9900]">
+      <div className="absolute top-3 right-3 z-[9900]">
         <div className="flex items-center bg-white/95 backdrop-blur-sm border border-gray-200 shadow-sm rounded-full h-[32px] px-2.5 gap-2">
           <button onClick={() => setShowMenu(true)} className="flex items-center justify-center w-[22px] h-[22px] hover:bg-gray-100 rounded-full transition-colors active:bg-gray-200">
              <div className="flex gap-[3px]">
@@ -83,7 +83,7 @@ export default function MiniProgramCapsule() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[10000] bg-black/40 flex items-end sm:items-center justify-center"
+            className="absolute inset-0 z-[10000] bg-black/40 flex items-end sm:items-center justify-center p-4 sm:p-0"
             onClick={() => setShowMenu(false)}
           >
             <motion.div
