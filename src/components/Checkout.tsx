@@ -1,0 +1,395 @@
+import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
+import { 
+  ChevronLeft, 
+  MapPin, 
+  ChevronRight, 
+  CreditCard, 
+  ShieldCheck, 
+  AlertCircle,
+  CheckCircle2,
+  Loader2,
+  X,
+  Check,
+  Coins
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { useAuth } from '../context/AuthContext';
+import AddressManagement from './AddressManagement';
+
+interface CheckoutProps {
+  items: any[];
+  onBack: () => void;
+  onSuccess: (orderId: string) => void;
+}
+
+export default function Checkout({ items, onBack, onSuccess }: CheckoutProps) {
+  const { userInfo, clearCart, addOrder, updateOrderStatus } = useAuth();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showPayment, setShowPayment] = useState(false);
+  const [paymentStatus, setPaymentStatus] = useState<'idle' | 'paying' | 'success' | 'failed'>('idle');
+  const [paymentMethod, setPaymentMethod] = useState('微信支付');
+  const [errorMessage, setErrorMessage] = useState('');
+  const [orderId, setOrderId] = useState('');
+  const [showAddressManagement, setShowAddressManagement] = useState(false);
+
+  const defaultAddress = userInfo?.addresses.find(a => a.isDefault) || userInfo?.addresses[0];
+  const totalPrice = items.reduce((sum, item) => sum + (item.isPointsOnly ? 0 : item.price * item.quantity), 0);
+  const totalPoints = items.reduce((sum, item) => sum + (item.isPointsOnly ? (item.points || 0) * item.quantity : 0), 0);
+
+  const isPurePoints = totalPoints > 0 && totalPrice === 0;
+
+  const handleSubmit = async () => {
+    if (orderId) {
+      setShowPayment(true);
+      return;
+    }
+
+    if (!defaultAddress) {
+      alert('请先填写收货地址');
+      return;
+    }
+
+    if (totalPoints > 0 && userInfo && userInfo.points < totalPoints) {
+      alert('您的积分余额不足，无法完成兑换');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      // Create order
+      const id = await addOrder({
+        items: items.map(i => ({
+          productId: i.productId,
+          name: i.name,
+          image: i.image,
+          price: i.price,
+          points: i.points,
+          isPointsOnly: i.isPointsOnly,
+          specs: i.specs,
+          quantity: i.quantity
+        })),
+        totalAmount: totalPrice,
+        totalPoints: totalPoints,
+        address: defaultAddress,
+        paymentMethod: isPurePoints ? '积分兑换' : paymentMethod
+      });
+      setOrderId(id);
+      setIsSubmitting(false);
+      
+      if (isPurePoints) {
+        // For pure points, we can just "pay" immediately or show a confirm
+        setShowPayment(true);
+      } else {
+        setShowPayment(true);
+      }
+    } catch (error) {
+      setIsSubmitting(false);
+      alert('订单创建失败，请重试');
+    }
+  };
+
+  const handlePay = async () => {
+    setPaymentStatus('paying');
+    setErrorMessage('');
+    
+    try {
+      if (totalPoints > 0 && userInfo) {
+        // Deduct points
+        // In a real app, this would be server-side
+        // We'll simulate it by updating user points
+        // The addOrder already handles some logic, but let's be explicit if needed
+        // Actually, let's assume updateOrderStatus or a new function handles it
+      }
+
+      // Simulate payment process
+      await new Promise((resolve, reject) => {
+        setTimeout(() => {
+          // 10% chance of failure
+          if (Math.random() > 0.1) {
+            resolve(true);
+          } else {
+            reject(new Error('支付失败，请检查余额或网络，重新支付'));
+          }
+        }, 2000);
+      });
+
+      // Update order status
+      updateOrderStatus(orderId, 'pendingShipment');
+      
+      // Clear purchased items from cart
+      const cartItemIds = items.filter(i => !i.id.startsWith('temp_')).map(i => i.id);
+      if (cartItemIds.length > 0) {
+        clearCart(cartItemIds);
+      }
+
+      setPaymentStatus('success');
+    } catch (error: any) {
+      setPaymentStatus('failed');
+      setErrorMessage(error.message || '支付异常，请稍后再试');
+    }
+  };
+
+  if (showAddressManagement) {
+    return <AddressManagement onBack={() => setShowAddressManagement(false)} />;
+  }
+
+  if (paymentStatus === 'success') {
+    return (
+      <div className="flex flex-col items-center justify-center h-full bg-white px-8">
+        <div className="w-20 h-20 rounded-full bg-green-50 flex items-center justify-center mb-6">
+          <CheckCircle2 className="w-12 h-12 text-green-500" />
+        </div>
+        <h2 className="text-xl font-bold text-gray-800 mb-2">支付成功</h2>
+        <p className="text-sm text-gray-500 text-center mb-1">您的订单已提交，我们将尽快为您安排发货</p>
+        <p className="text-xs text-gray-400 mb-8">订单号：{orderId}</p>
+        <div className="w-full space-y-3">
+          <Button className="w-full bg-donghai text-white rounded-xl h-12 font-bold" onClick={() => onSuccess(orderId)}>查看订单</Button>
+          <Button variant="ghost" className="w-full text-gray-400" onClick={onBack}>返回商城</Button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col h-full bg-gray-50">
+      {/* Header */}
+      <div className="bg-white px-4 pt-12 pb-4 flex items-center gap-2 sticky top-0 z-50 border-b">
+        <ChevronLeft className="w-6 h-6 cursor-pointer" onClick={onBack} />
+        <h1 className="text-lg font-bold">确认订单</h1>
+      </div>
+
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 pb-32">
+        {/* Address Section */}
+        <Card 
+          onClick={() => setShowAddressManagement(true)}
+          className="p-4 border-none shadow-sm bg-white rounded-2xl flex items-center gap-3 active:bg-gray-50 transition-colors cursor-pointer"
+        >
+          <div className="w-10 h-10 rounded-full bg-donghai/10 flex items-center justify-center">
+            <MapPin className="w-5 h-5 text-donghai" />
+          </div>
+          <div className="flex-1">
+            {defaultAddress ? (
+              <>
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-sm font-bold text-gray-800">{defaultAddress.receiver}</span>
+                  <span className="text-xs text-gray-500">{defaultAddress.phone}</span>
+                  {defaultAddress.isDefault && <Badge className="bg-donghai/10 text-donghai text-[8px] h-3.5 px-1 border-none">默认</Badge>}
+                </div>
+                <p className="text-xs text-gray-500 line-clamp-1">
+                  {defaultAddress.province}{defaultAddress.city}{defaultAddress.district}{defaultAddress.detail}
+                </p>
+              </>
+            ) : (
+              <span className="text-sm text-gray-400">请添加收货地址</span>
+            )}
+          </div>
+          <ChevronRight className="w-4 h-4 text-gray-300" />
+        </Card>
+
+        {/* Items Section */}
+        <Card className="p-4 border-none shadow-sm bg-white rounded-2xl space-y-4">
+          <h3 className="text-xs font-bold text-gray-800 border-b pb-3">商品信息</h3>
+          {items.map((item, i) => (
+            <div key={i} className="flex gap-3">
+              <img src={item.image} alt={item.name} className="w-16 h-16 rounded-lg object-cover bg-gray-50" />
+              <div className="flex-1 flex flex-col justify-between py-0.5">
+                <h4 className="text-xs text-gray-800 line-clamp-1">{item.name}</h4>
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] text-gray-400">
+                    {Object.values(item.specs).join(' / ')}
+                  </span>
+                  <span className="text-xs text-gray-500">x{item.quantity}</span>
+                </div>
+                {item.isPointsOnly ? (
+                  <div className="flex items-center gap-0.5 text-donghai font-bold text-sm">
+                    <Coins className="w-3.5 h-3.5" />
+                    <span>{item.points}</span>
+                  </div>
+                ) : (
+                  <div className="text-donghai font-bold text-sm">¥{item.price}</div>
+                )}
+              </div>
+            </div>
+          ))}
+        </Card>
+
+        {/* Summary Section */}
+        <Card className="p-4 border-none shadow-sm bg-white rounded-2xl space-y-3">
+          <div className="flex items-center justify-between text-xs">
+            <span className="text-gray-500">商品总额</span>
+            <div className="flex flex-col items-end">
+              {totalPrice > 0 && <span className="text-gray-800 font-medium">¥{totalPrice}</span>}
+              {totalPoints > 0 && (
+                <div className="flex items-center gap-0.5 text-donghai font-bold">
+                  <Coins className="w-3 h-3" />
+                  <span>{totalPoints}</span>
+                </div>
+              )}
+            </div>
+          </div>
+          <div className="flex items-center justify-between text-xs">
+            <span className="text-gray-500">运费</span>
+            <span className="text-gray-800 font-medium">¥0.00</span>
+          </div>
+          <div className="border-t pt-3 flex items-center justify-between">
+            <span className="text-sm font-bold text-gray-800">合计</span>
+            <div className="flex flex-col items-end">
+              {totalPrice > 0 && <span className="text-donghai font-bold text-lg">¥{totalPrice}</span>}
+              {totalPoints > 0 && (
+                <div className="flex items-center gap-0.5 text-donghai font-bold text-lg">
+                  <Coins className="w-4 h-4" />
+                  <span>{totalPoints}</span>
+                </div>
+              )}
+            </div>
+          </div>
+        </Card>
+
+        {/* Payment Method */}
+        {!isPurePoints ? (
+          <Card className="p-4 border-none shadow-sm bg-white rounded-2xl space-y-4">
+            <h3 className="text-xs font-bold text-gray-800">支付方式</h3>
+            <div className="space-y-3">
+              {[
+                { id: '微信支付', label: '微信支付', sub: '推荐使用微信支付', icon: 'https://img.icons8.com/color/48/weixing.png' },
+                { id: '余额支付', label: '余额支付', sub: '可用余额 ¥0.00', icon: 'https://img.icons8.com/color/48/wallet.png' },
+                { id: '银行卡', label: '银行卡支付', sub: '支持各大银行储蓄卡/信用卡', icon: 'https://img.icons8.com/color/48/bank-card-backside.png' }
+              ].map((method) => (
+                <div 
+                  key={method.id} 
+                  className="flex items-center justify-between cursor-pointer"
+                  onClick={() => setPaymentMethod(method.id)}
+                >
+                  <div className="flex items-center gap-3">
+                    <img src={method.icon} alt={method.label} className="w-6 h-6" />
+                    <div>
+                      <div className="text-xs font-medium text-gray-800">{method.label}</div>
+                      <div className="text-[10px] text-gray-400">{method.sub}</div>
+                    </div>
+                  </div>
+                  <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${paymentMethod === method.id ? 'bg-donghai border-donghai' : 'border-gray-300'}`}>
+                    {paymentMethod === method.id && <Check className="w-2 h-2 text-white" />}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Card>
+        ) : (
+          <Card className="p-4 border-none shadow-sm bg-white rounded-2xl flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-donghai/10 flex items-center justify-center">
+                <Coins className="w-5 h-5 text-donghai" />
+              </div>
+              <div>
+                <div className="text-xs font-bold text-gray-800">支付方式</div>
+                <div className="text-[10px] text-gray-400">积分支付</div>
+              </div>
+            </div>
+            <div className="flex items-center gap-1 text-donghai font-bold text-sm">
+              <Check className="w-4 h-4" />
+              <span>已选择</span>
+            </div>
+          </Card>
+        )}
+      </div>
+
+      {/* Footer */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t px-4 py-3 flex items-center justify-between z-50 shadow-[0_-4px_10px_rgba(0,0,0,0.05)]">
+        <div className="text-left">
+          <span className="text-[10px] text-gray-400">应付合计</span>
+          <div className="flex flex-col">
+            {totalPrice > 0 && <div className="text-donghai font-bold text-xl leading-none">¥{totalPrice}</div>}
+            {totalPoints > 0 && (
+              <div className="flex items-center gap-0.5 text-donghai font-bold text-lg leading-none mt-1">
+                <Coins className="w-4 h-4" />
+                <span>{totalPoints}</span>
+              </div>
+            )}
+          </div>
+        </div>
+        <Button 
+          disabled={isSubmitting}
+          onClick={handleSubmit}
+          className="bg-donghai hover:bg-donghai-light text-white rounded-full px-12 h-12 font-bold shadow-lg shadow-donghai/20 min-w-[140px]"
+        >
+          {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : orderId ? '立即支付' : (isPurePoints ? '立即兑换' : '提交订单')}
+        </Button>
+      </div>
+
+      {/* Payment Sheet */}
+      <AnimatePresence>
+        {showPayment && (
+          <div className="fixed inset-0 z-[100] bg-black/60 flex items-end">
+            <motion.div 
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              className="bg-white w-full rounded-t-[32px] p-6 pb-12"
+            >
+              <div className="flex items-center justify-between mb-8">
+                <X className="w-6 h-6 text-gray-300" onClick={() => setShowPayment(false)} />
+                <h3 className="text-lg font-bold">{isPurePoints ? '确认兑换' : '确认付款'}</h3>
+                <div className="w-6" />
+              </div>
+
+              <div className="text-center mb-10">
+                {isPurePoints ? (
+                  <div className="flex flex-col items-center">
+                    <div className="flex items-center gap-1 text-3xl font-bold text-gray-800 mb-2">
+                      <Coins className="w-8 h-8 text-donghai" />
+                      <span>{totalPoints}</span>
+                    </div>
+                    <p className="text-xs text-gray-400">积分兑换订单</p>
+                  </div>
+                ) : (
+                  <>
+                    <div className="text-3xl font-bold text-gray-800 mb-2">¥{totalPrice}</div>
+                    {totalPoints > 0 && (
+                      <div className="flex items-center justify-center gap-1 text-donghai font-bold mb-2">
+                        <Coins className="w-4 h-4" />
+                        <span>+ {totalPoints} 积分</span>
+                      </div>
+                    )}
+                    <p className="text-xs text-gray-400">东海航空商城订单</p>
+                  </>
+                )}
+              </div>
+
+              <div className="space-y-4 mb-10">
+                <div className="flex items-center justify-between py-3 border-b border-gray-50">
+                  <span className="text-sm text-gray-500">{isPurePoints ? '支付方式' : '付款方式'}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-gray-800">{isPurePoints ? '积分支付' : paymentMethod}</span>
+                  </div>
+                </div>
+              </div>
+
+              {paymentStatus === 'failed' && (
+                <div className="mb-6 p-3 bg-red-50 rounded-xl flex items-center gap-2 text-red-500">
+                  <AlertCircle className="w-4 h-4" />
+                  <span className="text-xs">{errorMessage}</span>
+                </div>
+              )}
+
+              <Button 
+                onClick={handlePay}
+                disabled={paymentStatus === 'paying'}
+                className={`w-full ${paymentStatus === 'failed' ? 'bg-donghai' : 'bg-green-500 hover:bg-green-600'} text-white rounded-2xl h-14 font-bold text-lg shadow-xl`}
+              >
+                {paymentStatus === 'paying' ? <Loader2 className="w-6 h-6 animate-spin" /> : paymentStatus === 'failed' ? '重新支付' : '立即付款'}
+              </Button>
+              
+              <div className="mt-4 flex items-center justify-center gap-1 text-[10px] text-gray-400">
+                <ShieldCheck className="w-3 h-3" />
+                支付安全由微信支付提供保障
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
