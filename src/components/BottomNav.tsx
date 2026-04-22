@@ -37,7 +37,14 @@ export default function BottomNav({ activeTab, setActiveTab, onShowLogin }: Bott
               isActive ? 'text-donghai' : 'text-gray-400'
             }`}
           >
-            <Icon className={`w-6 h-6 mb-1 ${isActive ? 'fill-donghai/10' : ''}`} />
+            <div className="relative">
+              <Icon className={`w-6 h-6 mb-1 ${isActive ? 'fill-donghai/10' : ''}`} />
+              {item.id === 'cart' && userInfo?.cart && userInfo.cart.length > 0 && (
+                <span className="absolute -top-1 -right-2 bg-donghai text-white text-[8px] font-bold px-1 py-0.5 rounded-full border border-white min-w-[16px] text-center shadow-sm">
+                  {userInfo.cart.reduce((sum, cartItem) => sum + cartItem.quantity, 0) > 99 ? '99+' : userInfo.cart.reduce((sum, cartItem) => sum + cartItem.quantity, 0)}
+                </span>
+              )}
+            </div>
             <span className="text-[10px] font-medium">{item.label}</span>
           </button>
         );

@@ -246,7 +246,7 @@ export default function Cart({ onBack, onCheckout }: { onBack: () => void, onChe
 
       {/* Footer */}
       {cartItems.length > 0 && (
-        <div className="fixed bottom-20 left-0 right-0 bg-white border-t px-4 py-3 flex items-center justify-between z-[60] shadow-[0_-4px_10px_rgba(0,0,0,0.05)] max-w-md mx-auto">
+        <div className="absolute bottom-[76px] left-0 right-0 bg-white/95 backdrop-blur-md border-t px-4 py-3 flex items-center justify-between z-[60] shadow-[0_-4px_10px_rgba(0,0,0,0.05)]">
           <div className="flex items-center gap-2 cursor-pointer" onClick={toggleSelectAll}>
             <div className={`w-5 h-5 rounded-full border flex items-center justify-center transition-colors ${selectedIds.length === filteredItems.length ? 'bg-donghai border-donghai' : 'border-gray-300'}`}>
               {selectedIds.length === filteredItems.length && <Check className="w-3 h-3 text-white" />}

@@ -228,7 +228,7 @@ export default function ProductDetail({
             variant="ghost" 
             size="icon" 
             onClick={onBack}
-            className="w-10 h-10 rounded-full bg-black/20 backdrop-blur-md text-white hover:bg-black/40"
+            className="w-10 h-10 rounded-full bg-black/40 backdrop-blur-md text-white border border-white/40 hover:bg-black/60 shadow-sm"
           >
             <ChevronLeft className="w-6 h-6" />
           </Button>
@@ -238,18 +238,9 @@ export default function ProductDetail({
             variant="ghost" 
             size="icon" 
             onClick={handleShare}
-            className="w-10 h-10 rounded-full bg-black/20 backdrop-blur-md text-white hover:bg-black/40"
+            className="w-10 h-10 rounded-full bg-black/40 backdrop-blur-md text-white border border-white/40 hover:bg-black/60 shadow-sm"
           >
             <Share2 className="w-5 h-5" />
-          </Button>
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            onClick={handleFavorite}
-            disabled={isFavoriting}
-            className={`w-10 h-10 rounded-full bg-black/20 backdrop-blur-md text-white hover:bg-black/40 ${isFavorite ? 'text-red-500' : ''}`}
-          >
-            {isFavoriting ? <Loader2 className="w-5 h-5 animate-spin" /> : <Heart className={`w-5 h-5 ${isFavorite ? 'fill-current' : ''}`} />}
           </Button>
         </div>
       </div>
@@ -452,16 +443,29 @@ export default function ProductDetail({
 
       {/* Bottom Action Bar */}
       <div className="absolute bottom-0 left-0 right-0 bg-white/95 backdrop-blur-xl border-t border-gray-100 px-6 py-4 pb-8 flex items-center gap-6 z-[110] shadow-[0_-10px_30px_rgba(0,0,0,0.08)]">
-        <div className="flex items-center gap-6 pr-2">
+        <div className="flex items-center gap-5 pr-2">
           <div className="flex flex-col items-center gap-1 cursor-pointer" onClick={onShowCustomerService}>
             <MessageCircle className="w-5 h-5 text-gray-500" />
             <span className="text-[9px] text-gray-500">客服</span>
           </div>
-          <div className="flex flex-col items-center gap-1 cursor-pointer" onClick={() => {
+          <div className="flex flex-col items-center gap-1 cursor-pointer" onClick={handleFavorite}>
+            {isFavoriting ? (
+              <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
+            ) : (
+              <Heart className={`w-5 h-5 ${isFavorite ? 'fill-red-500 text-red-500' : 'text-gray-500'}`} />
+            )}
+            <span className="text-[9px] text-gray-500">收藏</span>
+          </div>
+          <div className="flex flex-col items-center gap-1 cursor-pointer relative" onClick={() => {
             onBack();
             onTabChange('cart');
           }}>
             <ShoppingCart className="w-5 h-5 text-gray-500" />
+            {userInfo?.cart && userInfo.cart.length > 0 && (
+              <span className="absolute -top-1.5 -right-2 bg-donghai text-white text-[8px] font-bold px-1 py-0.5 rounded-full z-10 border border-white min-w-[14px] text-center shadow-sm">
+                {userInfo.cart.reduce((sum, item) => sum + item.quantity, 0)}
+              </span>
+            )}
             <span className="text-[9px] text-gray-500">购物车</span>
           </div>
         </div>
@@ -497,12 +501,14 @@ export default function ProductDetail({
       {/* Share Sheet */}
       <AnimatePresence>
         {showShare && (
-          <div className="absolute inset-0 z-[100] bg-black/60 flex items-end">
+          <div className="absolute inset-0 z-[100] flex items-end" onClick={() => setShowShare(false)}>
+            <div className="absolute inset-0 bg-black/60" />
             <motion.div 
               initial={{ y: '100%' }}
               animate={{ y: 0 }}
               exit={{ y: '100%' }}
-              className="bg-white w-full rounded-t-[32px] p-6 pb-12"
+              onClick={(e) => e.stopPropagation()}
+              className="relative bg-white w-full rounded-t-[32px] p-6 pb-16"
             >
               <div className="flex items-center justify-between mb-6">
                 <h3 className="text-lg font-bold">分享到</h3>
@@ -538,7 +544,7 @@ export default function ProductDetail({
             className="absolute bottom-24 left-1/2 z-[200] bg-black/80 backdrop-blur-md text-white px-6 py-3 rounded-full flex items-center gap-2"
           >
             <Check className="w-4 h-4 text-green-400" />
-            <span className="text-xs font-bold">加入购物车成功</span>
+            <span className="text-xs font-bold">加入购物车成功 ({quantity}件)</span>
           </motion.div>
         )}
       </AnimatePresence>

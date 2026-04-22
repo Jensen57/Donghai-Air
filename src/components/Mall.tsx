@@ -147,13 +147,9 @@ export default function Mall({ onCheckout, onShowCompensation, onShowEmployeeAut
             </div>
             <span className="font-bold text-lg tracking-tight">东海航空商城</span>
           </div>
-          <div className="flex gap-4">
-            <Search className="w-5 h-5 opacity-70 cursor-pointer" onClick={() => setShowSearch(true)} />
-          </div>
         </div>
         <div className="relative cursor-pointer" onClick={() => setShowSearch(true)}>
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-          <div className="w-full bg-white rounded-full py-2 pl-9 pr-4 text-[13px] text-gray-400">
+          <div className="w-full bg-white rounded-full py-2.5 px-4 text-[13px] text-gray-400 text-center">
             搜索商品、品类、关键词
           </div>
         </div>
