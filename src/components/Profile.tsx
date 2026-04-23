@@ -37,7 +37,7 @@ import AddressManagement from './AddressManagement';
 import SettingsView from './Settings';
 import Feedback from './Feedback';
 
-export default function Profile({ onCheckout, onTabChange, onShowAfterSales, onShowCompensation, onShowEmployeeAuth, onShowEmployeeMall, onShowInternalOrders, onShowPointsCenter, onShowPointsMall, onShowLogin, onShowCustomerService }: { 
+export default function Profile({ onCheckout, onTabChange, onShowAfterSales, onShowCompensation, onShowEmployeeAuth, onShowEmployeeMall, onShowInternalOrders, onShowPointsCenter, onShowPointsMall, onShowLogin, onShowCustomerService, initialSettingSubPage = null, clearInitialSettingSubPage }: { 
   onCheckout: (items: any[]) => void, 
   onTabChange: (tab: any, id?: string) => void, 
   onShowAfterSales: () => void, 
@@ -48,7 +48,9 @@ export default function Profile({ onCheckout, onTabChange, onShowAfterSales, onS
   onShowPointsCenter: () => void,
   onShowPointsMall: () => void,
   onShowLogin: () => void,
-  onShowCustomerService: () => void
+  onShowCustomerService: () => void,
+  initialSettingSubPage?: string | null,
+  clearInitialSettingSubPage?: () => void
 }) {
   const { isLoggedIn, userInfo, logout } = useAuth();
 
@@ -65,9 +67,15 @@ export default function Profile({ onCheckout, onTabChange, onShowAfterSales, onS
   const [showHelp, setShowHelp] = useState(false);
   const [showFavorites, setShowFavorites] = useState(false);
   const [showAddresses, setShowAddresses] = useState(false);
-  const [showSettings, setShowSettings] = useState(false);
+  const [showSettings, setShowSettings] = useState(!!initialSettingSubPage);
   const [showFeedback, setShowFeedback] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    if (initialSettingSubPage) {
+      setShowSettings(true);
+    }
+  }, [initialSettingSubPage]);
 
   useEffect(() => {
     if (isLoggedIn) {
@@ -103,7 +111,7 @@ export default function Profile({ onCheckout, onTabChange, onShowAfterSales, onS
   }
 
   if (showSettings) {
-    return <SettingsView onBack={() => setShowSettings(false)} />;
+    return <SettingsView onBack={() => setShowSettings(false)} initialSubPage={initialSettingSubPage} />;
   }
 
   if (showFeedback) {
@@ -173,12 +181,11 @@ export default function Profile({ onCheckout, onTabChange, onShowAfterSales, onS
                 </Button>
               </div>
               <div className="flex items-center gap-2 mt-1">
-                <p className="text-[10px] text-white font-semibold">
-                  {userInfo && userInfo.phone ? userInfo.phone.replace(/(\d{3})\d{4}(\d{4})/, '$1****$2') : '未绑定手机号'}
-                </p>
-                <div className="border border-white/40 text-white bg-white/20 px-1.5 py-0.5 rounded-full text-[9px] font-medium backdrop-blur-sm">
-                  {userInfo && userInfo.isEmployee ? '已认证员工' : '未认证员工'}
-                </div>
+                {userInfo && userInfo.isEmployee && userInfo.employeeAuth?.status === 'approved' && (
+                  <div className="border border-white/40 text-white bg-white/20 px-1.5 py-0.5 rounded-full text-[9px] font-medium backdrop-blur-sm">
+                    已认证员工
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -191,7 +198,10 @@ export default function Profile({ onCheckout, onTabChange, onShowAfterSales, onS
                 </Badge>
               ) : null}
             </div>
-            <Settings className="w-5 h-5 opacity-70 cursor-pointer" onClick={() => setShowSettings(true)} />
+            <Settings className="w-5 h-5 opacity-70 cursor-pointer" onClick={() => {
+              clearInitialSettingSubPage?.();
+              setShowSettings(true);
+            }} />
           </div>
         </div>
 
@@ -285,37 +295,6 @@ export default function Profile({ onCheckout, onTabChange, onShowAfterSales, onS
           </div>
         </Card>
 
-        {/* Employee Auth Entry */}
-        <Card 
-          className="p-3 border-none shadow-sm bg-white rounded-2xl active:bg-gray-50 transition-colors"
-          onClick={handleEmployeeAuthClick}
-        >
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center">
-                <ShieldCheck className="w-5 h-5 text-blue-500" />
-              </div>
-              <div>
-                <h3 className="text-sm font-bold text-gray-800">员工内购认证</h3>
-                <p className="text-[10px] text-gray-400">认证后享员工专属价与双倍积分</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <Badge variant="outline" className={`text-[10px] h-5 px-2 rounded-full border-none ${
-                userInfo?.employeeAuth?.status === 'approved' ? 'bg-green-50 text-green-600' :
-                userInfo?.employeeAuth?.status === 'pending' ? 'bg-orange-50 text-orange-600' :
-                userInfo?.employeeAuth?.status === 'rejected' ? 'bg-red-50 text-red-600' :
-                'bg-gray-50 text-gray-400'
-              }`}>
-                {userInfo?.employeeAuth?.status === 'approved' ? '已认证' :
-                 userInfo?.employeeAuth?.status === 'pending' ? '审核中' :
-                 userInfo?.employeeAuth?.status === 'rejected' ? '未通过' : '未认证'}
-              </Badge>
-              <ChevronRight className="w-4 h-4 text-gray-300" />
-            </div>
-          </div>
-        </Card>
-
         {/* Menu List */}
         <Card className="overflow-hidden border-none shadow-sm bg-white rounded-2xl">
           {[
@@ -323,7 +302,10 @@ export default function Profile({ onCheckout, onTabChange, onShowAfterSales, onS
             { icon: Bell, label: '消息中心', extra: `${userInfo?.unreadMessagesCount || 0}条未读`, onClick: () => setShowMessages(true) },
             { icon: HelpCircle, label: '帮助中心', extra: '', onClick: () => setShowHelp(true) },
             { icon: MessageSquare, label: '意见反馈', extra: '', onClick: () => setShowFeedback(true) },
-            { icon: Settings, label: '隐私设置', extra: '', onClick: () => setShowSettings(true) },
+            { icon: Settings, label: '设置', extra: '', onClick: () => {
+              clearInitialSettingSubPage?.();
+              setShowSettings(true);
+            } },
           ].map((item, index, arr) => {
             const Icon = item.icon;
             return (

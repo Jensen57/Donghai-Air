@@ -11,13 +11,15 @@ import {
   Loader2,
   X,
   Check,
-  Coins
+  Coins,
+  UserCircle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '../context/AuthContext';
 import AddressManagement from './AddressManagement';
+import { DETAILED_PRODUCTS, POINTS_PRODUCTS, INTERNAL_PRODUCTS } from '../constants';
 
 interface CheckoutProps {
   items: any[];
@@ -34,6 +36,23 @@ export default function Checkout({ items, onBack, onSuccess }: CheckoutProps) {
   const [errorMessage, setErrorMessage] = useState('');
   const [orderId, setOrderId] = useState('');
   const [showAddressManagement, setShowAddressManagement] = useState(false);
+  const [showPhoneBinding, setShowPhoneBinding] = useState(false);
+  const [showIdAuthNeeded, setShowIdAuthNeeded] = useState(false);
+  const [newPhone, setNewPhone] = useState('');
+  const { updateUser } = useAuth();
+
+  const handleBindPhone = async () => {
+    if (!newPhone || newPhone.length !== 11) {
+      alert('请输入正确的11位手机号');
+      return;
+    }
+    await updateUser({ phone: newPhone });
+    setShowPhoneBinding(false);
+    // Smooth transition natively: the timeout prevents the modal exit animation from lagging behind the newly opened sheet
+    setTimeout(() => {
+      handleSubmit();
+    }, 300);
+  };
 
   const defaultAddress = userInfo?.addresses.find(a => a.isDefault) || userInfo?.addresses[0];
   const totalPrice = items.reduce((sum, item) => sum + (item.isPointsOnly ? 0 : item.price * item.quantity), 0);
@@ -55,6 +74,27 @@ export default function Checkout({ items, onBack, onSuccess }: CheckoutProps) {
     if (totalPoints > 0 && userInfo && userInfo.points < totalPoints) {
       alert('您的积分余额不足，无法完成兑换');
       return;
+    }
+
+    // Real-name Verification check
+    if (!userInfo?.isIdVerified) {
+      setShowIdAuthNeeded(true);
+      return;
+    }
+
+    // Phone binding check
+    if (!userInfo?.phone) {
+      setShowPhoneBinding(true);
+      return;
+    }
+
+    // Employee internal purchase check
+    const hasInternalItems = items.some(item => item.productId && item.productId.startsWith('emp-'));
+    if (hasInternalItems) {
+      if (!userInfo?.isEmployee || userInfo?.employeeAuth?.status !== 'approved') {
+        alert('该订单包含内购专属商品，需要完成员工认证后购买');
+        return;
+      }
     }
 
     setIsSubmitting(true);
@@ -92,6 +132,16 @@ export default function Checkout({ items, onBack, onSuccess }: CheckoutProps) {
   };
 
   const handlePay = async () => {
+    // Balance checkout validation
+    if (!isPurePoints && paymentMethod === '余额支付') {
+      const balance = userInfo?.balance || 0;
+      if (balance < totalPrice) {
+        setPaymentStatus('failed');
+        setErrorMessage(`当前可用余额为 ¥${balance.toFixed(2)}，无法完成支付，请使用其他支付方式`);
+        return;
+      }
+    }
+
     setPaymentStatus('paying');
     setErrorMessage('');
     
@@ -119,6 +169,17 @@ export default function Checkout({ items, onBack, onSuccess }: CheckoutProps) {
       // Update order status
       updateOrderStatus(orderId, 'pendingShipment');
       
+      // Update global stock and sales (Mutation of imported constants)
+      items.forEach(item => {
+        const globalItem = DETAILED_PRODUCTS.find(p => p.id === item.productId) || 
+                           POINTS_PRODUCTS.find(p => p.id === item.productId) || 
+                           INTERNAL_PRODUCTS.find(p => p.id === item.productId);
+        if (globalItem) {
+          globalItem.stock = Math.max(0, globalItem.stock - item.quantity);
+          globalItem.sales = (globalItem.sales || 0) + item.quantity;
+        }
+      });
+
       // Clear purchased items from cart
       const cartItemIds = items.filter(i => !i.id.startsWith('temp_')).map(i => i.id);
       if (cartItemIds.length > 0) {
@@ -330,7 +391,11 @@ export default function Checkout({ items, onBack, onSuccess }: CheckoutProps) {
               className="bg-white w-full rounded-t-[32px] p-6 pb-12"
             >
               <div className="flex items-center justify-between mb-8">
-                <X className="w-6 h-6 text-gray-300" onClick={() => setShowPayment(false)} />
+                <X className="w-6 h-6 text-gray-300" onClick={() => {
+                  setShowPayment(false);
+                  setPaymentStatus('idle');
+                  setErrorMessage('');
+                }} />
                 <h3 className="text-lg font-bold">{isPurePoints ? '确认兑换' : '确认付款'}</h3>
                 <div className="w-6" />
               </div>
@@ -385,6 +450,95 @@ export default function Checkout({ items, onBack, onSuccess }: CheckoutProps) {
               <div className="mt-4 flex items-center justify-center gap-1 text-[10px] text-gray-400">
                 <ShieldCheck className="w-3 h-3" />
                 支付安全由微信支付提供保障
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Phone Binding Modal */}
+      <AnimatePresence>
+        {showPhoneBinding && (
+          <div className="fixed inset-0 z-[100] bg-black/60 flex items-end">
+            <motion.div 
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              className="bg-white w-full rounded-t-[32px] p-6 pb-12"
+            >
+              <div className="flex items-center justify-between mb-8">
+                <X className="w-6 h-6 text-gray-300" onClick={() => setShowPhoneBinding(false)} />
+                <h3 className="text-lg font-bold">绑定手机号</h3>
+                <div className="w-6" />
+              </div>
+
+              <div className="text-center mb-8">
+                <p className="text-sm text-gray-500 mb-6">为了方便联系和发货，请输入您的手机号完成绑定。</p>
+                <input 
+                  type="tel"
+                  maxLength={11}
+                  placeholder="请输入11位手机号"
+                  value={newPhone}
+                  onChange={(e) => setNewPhone(e.target.value.replace(/\D/g, ''))}
+                  className="w-full bg-gray-50 border-none px-4 py-4 rounded-2xl text-lg font-medium text-center focus:ring-2 focus:ring-donghai"
+                />
+              </div>
+
+              <Button 
+                onClick={handleBindPhone}
+                disabled={newPhone.length !== 11}
+                className="w-full bg-donghai hover:bg-donghai-light text-white rounded-2xl h-14 font-bold text-lg shadow-xl"
+              >
+                授权绑定
+              </Button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Real-name Auth Required Modal */}
+      <AnimatePresence>
+        {showIdAuthNeeded && (
+          <div className="absolute inset-0 z-[200] flex items-center justify-center px-6">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowIdAuthNeeded(false)}
+              className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+            />
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="relative bg-white rounded-[32px] p-6 w-full max-w-xs text-center shadow-2xl"
+            >
+              <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                <UserCircle className="w-8 h-8 text-blue-500" />
+              </div>
+              <h3 className="text-lg font-bold text-gray-800 mb-2">提示</h3>
+              <p className="text-xs text-gray-500 mb-6 leading-relaxed">根据相关规定，您需要先完成实名认证后方可进行交易。</p>
+              <div className="flex gap-3">
+                <Button 
+                  variant="outline"
+                  className="flex-1 rounded-full h-11 font-bold border-gray-200 text-gray-600"
+                  onClick={() => {
+                    setShowIdAuthNeeded(false);
+                    alert('请去设置里进行认证');
+                  }}
+                >
+                  稍后
+                </Button>
+                <Button 
+                  className="flex-1 bg-donghai text-white rounded-full h-11 font-bold"
+                  onClick={() => {
+                    setShowIdAuthNeeded(false);
+                    const event = new CustomEvent('navigate-id-auth');
+                    window.dispatchEvent(event);
+                  }}
+                >
+                  去认证
+                </Button>
               </div>
             </motion.div>
           </div>

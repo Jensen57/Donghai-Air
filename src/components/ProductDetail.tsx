@@ -16,7 +16,8 @@ import {
   X,
   Coins,
   Zap,
-  AlertCircle
+  AlertCircle,
+  UserCircle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -78,9 +79,37 @@ export default function ProductDetail({
 
   const isFavorite = userInfo?.favorites?.includes(product.id);
 
-  const currentPrice = product.priceMap && selectedSpecs['比例'] 
-    ? product.priceMap[selectedSpecs['比例']] 
-    : product.price;
+  // Dynamic price calculation based on specs
+  const calculatePrice = () => {
+    let basePrice = product.price || 0;
+    if (product.specs && Object.keys(selectedSpecs).length > 0) {
+      product.specs.forEach(spec => {
+        const optionIndex = spec.options.indexOf(selectedSpecs[spec.label]);
+        if (optionIndex > 0) {
+          // Increase price by ~15% per spec level (rounded)
+          basePrice += Math.round(product.price * 0.15 * optionIndex);
+        }
+      });
+    }
+    return basePrice;
+  };
+
+  const calculatePoints = () => {
+    let basePoints = product.points || 0;
+    if (product.specs && Object.keys(selectedSpecs).length > 0) {
+      product.specs.forEach(spec => {
+        const optionIndex = spec.options.indexOf(selectedSpecs[spec.label]);
+        if (optionIndex > 0) {
+          // Increase points by ~15% per spec level (rounded)
+          basePoints += Math.round((product.points || 0) * 0.15 * optionIndex);
+        }
+      });
+    }
+    return basePoints;
+  };
+
+  const currentPrice = calculatePrice();
+  const currentPoints = product.isPointsOnly ? calculatePoints() : product.points;
 
   useEffect(() => {
     // Initialize specs
@@ -96,11 +125,26 @@ export default function ProductDetail({
   }, [product]);
 
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [showIdAuthNeeded, setShowIdAuthNeeded] = useState(false);
 
   const handleBuyNow = () => {
     if (!isLoggedIn) {
       onShowLogin();
       return;
+    }
+
+    // Real-name Verification check
+    if (!userInfo?.isIdVerified) {
+      setShowIdAuthNeeded(true);
+      return;
+    }
+
+    // Employee Auth Check for internal products
+    if (product.id.startsWith('emp-')) {
+      if (!userInfo?.isEmployee || userInfo?.employeeAuth?.status !== 'approved') {
+        setErrorMsg('抱歉，该商品为内购专属，需要完成员工认证后才能购买');
+        return;
+      }
     }
 
     // Internal Purchase Limit Check
@@ -128,7 +172,7 @@ export default function ProductDetail({
       name: product.name,
       image: product.images[0],
       price: currentPrice,
-      points: product.points,
+      points: currentPoints,
       isPointsOnly: product.isPointsOnly,
       specs: selectedSpecs,
       quantity: quantity
@@ -161,6 +205,20 @@ export default function ProductDetail({
       return;
     }
 
+    // Real-name Verification check
+    if (!userInfo?.isIdVerified) {
+      setShowIdAuthNeeded(true);
+      return;
+    }
+
+    // Employee Auth Check for internal products
+    if (product.id.startsWith('emp-')) {
+      if (!userInfo?.isEmployee || userInfo?.employeeAuth?.status !== 'approved') {
+        setErrorMsg('抱歉，该商品为内购专属，需要完成员工认证后才能加入购物车');
+        return;
+      }
+    }
+
     // Internal Purchase Limit Check
     if (product.isInternal && product.limitPerEmployee && userInfo) {
       const alreadyBought = userInfo.internalPurchases?.[product.id] || 0;
@@ -177,7 +235,7 @@ export default function ProductDetail({
     // Removed validation for adding to cart as per user request: "加入对换车不需要校验当前积分是否可以购买当前商品"
     /*
     if (product.isPointsOnly && userInfo) {
-      const totalPointsNeeded = (product.points || 0) * quantity;
+      const totalPointsNeeded = currentPoints * quantity;
       if (userInfo.points < totalPointsNeeded) {
         setErrorMsg('您的积分余额不足，请先购买积分或积累积分');
         return;
@@ -192,7 +250,7 @@ export default function ProductDetail({
         name: product.name,
         image: product.images[0],
         price: currentPrice,
-        points: product.points,
+        points: currentPoints,
         isPointsOnly: product.isPointsOnly,
         specs: selectedSpecs,
         quantity: quantity
@@ -592,6 +650,55 @@ export default function ProductDetail({
               >
                 我知道了
               </Button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Real-name Auth Required Modal */}
+      <AnimatePresence>
+        {showIdAuthNeeded && (
+          <div className="absolute inset-0 z-[200] flex items-center justify-center px-6">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowIdAuthNeeded(false)}
+              className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+            />
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="relative bg-white rounded-[32px] p-6 w-full max-w-xs text-center shadow-2xl"
+            >
+              <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                <UserCircle className="w-8 h-8 text-blue-500" />
+              </div>
+              <h3 className="text-lg font-bold text-gray-800 mb-2">提示</h3>
+              <p className="text-xs text-gray-500 mb-6 leading-relaxed">根据相关规定，您需要先完成实名认证后方可进行交易。</p>
+              <div className="flex gap-3">
+                <Button 
+                  variant="outline"
+                  className="flex-1 rounded-full h-11 font-bold border-gray-200 text-gray-600"
+                  onClick={() => {
+                    setShowIdAuthNeeded(false);
+                    setErrorMsg('请去设置里进行认证');
+                  }}
+                >
+                  稍后
+                </Button>
+                <Button 
+                  className="flex-1 bg-donghai text-white rounded-full h-11 font-bold"
+                  onClick={() => {
+                    setShowIdAuthNeeded(false);
+                    const event = new CustomEvent('navigate-id-auth');
+                    window.dispatchEvent(event);
+                  }}
+                >
+                  去认证
+                </Button>
+              </div>
             </motion.div>
           </div>
         )}

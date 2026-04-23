@@ -5,6 +5,7 @@ import {
   MessageCircle, 
   Phone, 
   ChevronRight, 
+  ChevronLeft,
   Headphones, 
   Clock,
   ExternalLink,
@@ -49,92 +50,89 @@ export default function CustomerService({ isOpen, onClose, onOpenHelp }: Custome
     }, 1000);
   };
 
-  if (!isOpen) return null;
-
   return (
     <AnimatePresence>
-      <div className="absolute inset-0 z-[200] flex items-end sm:items-center justify-center">
-        <motion.div 
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          onClick={onClose}
-          className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-        />
-        
-        <motion.div 
-          initial={{ y: '100%' }}
-          animate={{ y: 0 }}
-          exit={{ y: '100%' }}
-          className="relative w-full max-w-md bg-gray-50 rounded-t-[24px] sm:rounded-[24px] overflow-hidden flex flex-col max-h-[70vh] shadow-2xl"
-        >
-          {/* Header */}
-          <div className="bg-white px-4 py-3 flex items-center justify-between border-b">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-full bg-donghai/10 flex items-center justify-center">
-                <Headphones className="w-4 h-4 text-donghai" />
-              </div>
-              <div>
-                <h3 className="text-[12px] font-bold text-gray-800">
-                  {view === 'menu' ? '客服中心' : view === 'chat' ? '在线客服' : '电话客服'}
-                </h3>
-                <div className="flex items-center gap-1">
-                  <div className="w-1 h-1 rounded-full bg-green-500" />
-                  <span className="text-[8px] text-gray-400">正在为您服务</span>
+      {isOpen && (
+        <div className="absolute inset-0 z-[200]">
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={onClose}
+            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+          />
+          
+          <motion.div 
+            initial={{ y: '100%' }}
+            animate={{ y: 0 }}
+            exit={{ y: '100%' }}
+            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+            className="absolute inset-0 bg-white overflow-hidden flex flex-col shadow-2xl"
+          >
+            {/* Header */}
+            <div className="bg-white px-4 pt-12 pb-3 flex items-center justify-between border-b shadow-sm">
+              <div className="flex items-center gap-2">
+                <ChevronLeft className="w-6 h-6 text-gray-800 cursor-pointer" onClick={onClose} />
+                <div className="w-8 h-8 rounded-full bg-donghai/10 flex items-center justify-center">
+                  <Headphones className="w-4 h-4 text-donghai" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-gray-800">
+                    {view === 'menu' ? '客服中心' : view === 'chat' ? '在线客服' : '电话客服'}
+                  </h3>
+                  <div className="flex items-center gap-1">
+                    <div className="w-1 h-1 rounded-full bg-green-500" />
+                    <span className="text-[8px] text-gray-400">正在为您服务</span>
+                  </div>
                 </div>
               </div>
+              <Button variant="ghost" size="icon" onClick={onClose} className="w-8 h-8 rounded-full hover:bg-gray-100">
+                <X className="w-4 h-4 text-gray-400" />
+              </Button>
             </div>
-            <Button variant="ghost" size="icon" onClick={onClose} className="w-8 h-8 rounded-full hover:bg-gray-100">
-              <X className="w-4 h-4 text-gray-400" />
-            </Button>
-          </div>
 
-          <div className="flex-1 overflow-y-auto p-4 min-h-[240px]">
+            <div className="flex-1 overflow-y-auto p-4 bg-gray-50">
             {view === 'menu' && (
-              <div className="space-y-3">
-                <Card 
-                  onClick={() => setView('chat')}
-                  className="p-3 border-none shadow-sm bg-white rounded-xl flex items-center justify-between cursor-pointer active:scale-95 transition-transform"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-xl bg-donghai/10 flex items-center justify-center">
-                      <MessageCircle className="w-5 h-5 text-donghai" />
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <Card 
+                    onClick={() => setView('chat')}
+                    className="p-5 border-none shadow-md bg-white rounded-2xl flex flex-col items-center gap-3 cursor-pointer active:scale-95 transition-transform"
+                  >
+                    <div className="w-12 h-12 rounded-2xl bg-donghai/10 flex items-center justify-center">
+                      <MessageCircle className="w-6 h-6 text-donghai" />
                     </div>
-                    <div>
-                      <div className="text-[12px] font-bold text-gray-800">在线客服</div>
-                      <div className="text-[9px] text-gray-400">与真人客服实时对话</div>
+                    <div className="text-center">
+                      <div className="text-sm font-bold text-gray-800">在线客服</div>
+                      <div className="text-[10px] text-gray-400 mt-1">真人客服1对1</div>
                     </div>
-                  </div>
-                  <ChevronRight className="w-3 h-3 text-gray-300" />
-                </Card>
+                  </Card>
 
-                <Card 
-                  onClick={() => setView('phone')}
-                  className="p-3 border-none shadow-sm bg-white rounded-xl flex items-center justify-between cursor-pointer active:scale-95 transition-transform"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center">
-                      <Phone className="w-5 h-5 text-blue-500" />
+                  <Card 
+                    onClick={() => setView('phone')}
+                    className="p-5 border-none shadow-md bg-white rounded-2xl flex flex-col items-center gap-3 cursor-pointer active:scale-95 transition-transform"
+                  >
+                    <div className="w-12 h-12 rounded-2xl bg-blue-50 flex items-center justify-center">
+                      <Phone className="w-6 h-6 text-blue-500" />
                     </div>
-                    <div>
-                      <div className="text-[12px] font-bold text-gray-800">电话客服</div>
-                      <div className="text-[9px] text-gray-400">拨打服务热线咨询</div>
+                    <div className="text-center">
+                      <div className="text-sm font-bold text-gray-800">电话客服</div>
+                      <div className="text-[10px] text-gray-400 mt-1">专属热线咨询</div>
                     </div>
-                  </div>
-                  <ChevronRight className="w-3 h-3 text-gray-300" />
-                </Card>
+                  </Card>
+                </div>
 
-                <div className="pt-2">
-                  <div className="text-[10px] font-bold text-gray-800 mb-2">常见问题</div>
-                  <div className="space-y-1.5">
-                    {['如何申请退款？', '积分如何获取？', '物流信息在哪里查看？'].map((q, i) => (
+                <div className="pt-4">
+                  <div className="text-xs font-bold text-gray-800 mb-3 ml-1">猜你想问</div>
+                  <div className="space-y-2">
+                    {['如何申请退款？', '积分如何获取？', '物流信息在哪里查看？', '内购商品规则有哪些？'].map((q, i) => (
                       <div 
                         key={i} 
                         onClick={() => onOpenHelp?.(q)}
-                        className="text-[10px] text-gray-500 bg-white p-2 rounded-lg border border-gray-100 flex items-center justify-between cursor-pointer active:bg-gray-50"
+                        className="text-xs text-gray-600 bg-white p-4 rounded-xl shadow-sm flex items-center justify-between cursor-pointer active:bg-gray-50 border border-gray-50"
                       >
-                        <span>{q}</span>
-                        <ChevronRight className="w-2.5 h-2.5 opacity-30" />
+                        <span className="font-medium">{q}</span>
+                        <ChevronRight className="w-3.5 h-3.5 text-gray-300" />
                       </div>
                     ))}
                   </div>
@@ -143,17 +141,20 @@ export default function CustomerService({ isOpen, onClose, onOpenHelp }: Custome
             )}
 
             {view === 'chat' && (
-              <div className="flex flex-col h-full">
-                <div className="flex-1 space-y-3 mb-2">
+              <div className="flex flex-col min-h-full">
+                <div className="flex-1 space-y-4 mb-4">
+                  <div className="flex justify-center">
+                    <span className="text-[9px] text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">系统：已连接客服中心</span>
+                  </div>
                   {messages.map((msg) => (
                     <div key={msg.id} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
-                      <div className={`max-w-[85%] p-2.5 rounded-xl text-[11px] ${
+                      <div className={`max-w-[85%] p-3.5 rounded-2xl text-[12px] shadow-sm ${
                         msg.sender === 'user' 
                           ? 'bg-donghai text-white rounded-tr-none' 
-                          : 'bg-white text-gray-700 rounded-tl-none shadow-sm'
+                          : 'bg-white text-gray-700 rounded-tl-none'
                       }`}>
                         {msg.text}
-                        <div className={`text-[7px] mt-0.5 opacity-60 ${msg.sender === 'user' ? 'text-right' : 'text-left'}`}>
+                        <div className={`text-[8px] mt-1 opacity-60 ${msg.sender === 'user' ? 'text-right' : 'text-left'}`}>
                           {msg.time}
                         </div>
                       </div>
@@ -196,38 +197,39 @@ export default function CustomerService({ isOpen, onClose, onOpenHelp }: Custome
 
           {/* Footer for Chat */}
           {view === 'chat' && (
-            <div className="bg-white p-3 border-t flex items-center gap-2">
+            <div className="bg-white p-4 pb-10 border-t flex items-center gap-3">
               <input 
                 type="text" 
                 value={inputText}
                 onChange={(e) => setInputText(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-                placeholder="请输入..."
-                className="flex-1 bg-gray-50 rounded-full h-9 px-3 text-[10px] focus:outline-none focus:ring-1 focus:ring-donghai/30"
+                placeholder="在此输入您想咨询的问题..."
+                className="flex-1 bg-gray-50 rounded-xl h-12 px-4 text-sm focus:outline-none focus:ring-1 focus:ring-donghai/30"
               />
               <Button 
                 onClick={handleSendMessage}
-                className="w-9 h-9 rounded-full bg-donghai text-white p-0 flex items-center justify-center shadow-lg shadow-donghai/20"
+                className="w-12 h-12 rounded-xl bg-donghai text-white p-0 flex items-center justify-center shadow-lg shadow-donghai/20"
               >
-                <Send className="w-3.5 h-3.5" />
+                <Send className="w-5 h-5" />
               </Button>
             </div>
           )}
 
-          {/* Back button for sub-views */}
+          {/* Bottom Back Button - only in sub-views */}
           {view !== 'menu' && (
-            <div className="p-3 bg-white border-t">
+            <div className="p-4 pt-0 bg-white">
               <Button 
                 variant="ghost" 
                 onClick={() => setView('menu')}
-                className="w-full h-8 text-[10px] text-gray-400"
+                className="w-full h-10 text-xs text-gray-400 bg-gray-50 rounded-xl"
               >
-                返回客服中心
+                返回客服功能列表
               </Button>
             </div>
           )}
         </motion.div>
       </div>
+    )}
     </AnimatePresence>
   );
 }

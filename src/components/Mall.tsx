@@ -12,7 +12,7 @@ import Checkout from './Checkout';
 import { useAuth } from '../context/AuthContext';
 
 
-const CATEGORIES = ["全部", "咖啡饮品", "精选茗茶", "航空周边", "积分兑换"];
+const CATEGORIES = ["全部", "咖啡饮品", "精选茗茶", "航空周边"];
 
 export default function Mall({ onCheckout, onShowCompensation, onShowEmployeeAuth, onShowEmployeeMall, onShowPointsCenter, onShowPointsMall, onShowLogin, onTabChange, onShowCustomerService }: { 
   onCheckout: (items: any[]) => void, 
@@ -40,9 +40,17 @@ export default function Mall({ onCheckout, onShowCompensation, onShowEmployeeAut
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentBanner(prev => (prev + 1) % BANNERS.length);
-    }, 4000);
+    }, 5000);
     return () => clearInterval(timer);
   }, []);
+
+  const handleDragEnd = (_: any, info: any) => {
+    if (info.offset.x < -50) {
+      setCurrentBanner(prev => (prev + 1) % BANNERS.length);
+    } else if (info.offset.x > 50) {
+      setCurrentBanner(prev => (prev - 1 + BANNERS.length) % BANNERS.length);
+    }
+  };
 
   const { userInfo } = useAuth();
 
@@ -158,11 +166,11 @@ export default function Mall({ onCheckout, onShowCompensation, onShowEmployeeAut
       <div className="pt-2">
       {/* Quick Actions */}
         <div className="px-4 py-3 grid grid-cols-3 gap-4 bg-white mb-2 shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
-          {[
-            { label: '旅客赔付', icon: ShieldCheck, color: 'text-donghai', bg: 'bg-donghai/10', onClick: handleCompensationClick },
-            { label: '积分中心', icon: Coins, color: 'text-orange-500', bg: 'bg-orange-50', onClick: handlePointsCenterClick },
-            { label: '员工专区', icon: User, color: 'text-blue-500', bg: 'bg-blue-50', onClick: handleEmployeeZoneClick },
-          ].map((item, i) => (
+            {[
+              { label: '旅客赔付', icon: ShieldCheck, color: 'text-donghai', bg: 'bg-donghai/10', onClick: handleCompensationClick },
+              { label: '积分商城中心', icon: Coins, color: 'text-orange-500', bg: 'bg-orange-50', onClick: handlePointsCenterClick },
+              { label: '员工专区', icon: User, color: 'text-blue-500', bg: 'bg-blue-50', onClick: handleEmployeeZoneClick },
+            ].map((item, i) => (
             <div key={i} className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform" onClick={item.onClick}>
               <div className={`w-10 h-10 ${item.bg} rounded-2xl flex items-center justify-center relative shadow-sm`}>
                 <item.icon className={`w-4 h-4 ${item.color}`} />
@@ -186,7 +194,10 @@ export default function Mall({ onCheckout, onShowCompensation, onShowEmployeeAut
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
-                className="absolute inset-0"
+                drag="x"
+                dragConstraints={{ left: 0, right: 0 }}
+                onDragEnd={handleDragEnd}
+                className="absolute inset-0 cursor-grab active:cursor-grabbing"
               >
                 <img 
                   src={`https://picsum.photos/seed/${BANNERS[currentBanner].seed}/800/400`} 
@@ -194,7 +205,7 @@ export default function Mall({ onCheckout, onShowCompensation, onShowEmployeeAut
                   className="w-full h-full object-cover opacity-80"
                   referrerPolicy="no-referrer"
                 />
-                <div className="absolute inset-0 bg-gradient-to-r from-donghai/60 to-transparent flex flex-col justify-center px-8 text-white">
+                <div className="absolute inset-0 bg-gradient-to-r from-donghai/60 to-transparent flex flex-col justify-center px-8 text-white pointer-events-none">
                   <h2 className="text-sm font-bold">{BANNERS[currentBanner].title}</h2>
                   <p className="text-[10px] opacity-90 mt-0.5">{BANNERS[currentBanner].desc}</p>
                 </div>

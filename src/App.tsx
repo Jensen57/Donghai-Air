@@ -18,6 +18,7 @@ import CustomerService from './components/CustomerService';
 import MessageCenter from './components/MessageCenter';
 import MiniProgramCapsule from './components/MiniProgramCapsule';
 import HelpCenter from './components/HelpCenter';
+import WeChatHome from './components/wechat/WeChatHome';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { Headphones, Bell, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -81,6 +82,7 @@ function NotificationToast({ onClick }: { onClick?: () => void }) {
 }
 
 function AppContent() {
+  const [appMode, setAppMode] = useState<'wechat' | 'mini_program'>('mini_program');
   const [activeTab, setActiveTab] = useState('mall');
   const [prevTab, setPrevTab] = useState<string | null>(null);
   const [checkoutItems, setCheckoutItems] = useState<any[]>([]);
@@ -99,10 +101,49 @@ function AppContent() {
   const [showHelpCenter, setShowHelpCenter] = useState(false);
   const [helpCenterQuery, setHelpCenterQuery] = useState('');
 
+  const { logout } = useAuth();
+
   // targetOrderId is for navigating to specific order from message center
   const [targetOrderId, setTargetOrderId] = useState<string | undefined>(undefined);
+  const [initialSettingSubPage, setInitialSettingSubPage] = useState<string | null>(null);
+
+  React.useEffect(() => {
+    const handleNavigateIdAuth = () => {
+       // Switch to profile tab and then open settings->idAuth
+       setActiveTab('profile');
+       setInitialSettingSubPage('idAuth');
+    };
+    window.addEventListener('navigate-id-auth', handleNavigateIdAuth);
+    return () => window.removeEventListener('navigate-id-auth', handleNavigateIdAuth);
+  }, []);
 
   const constraintsRef = React.useRef(null);
+
+  const handleMinimize = () => {
+    setAppMode('wechat');
+  };
+
+  const handleClose = () => {
+    setAppMode('wechat');
+    // Reset state for fresh start
+    setActiveTab('mall');
+    setShowCheckout(false);
+    setAfterSalesInfo(null);
+    setShowCompensation(false);
+    setShowEmployeeAuth(false);
+    setShowEmployeeMall(false);
+    setShowInternalOrders(false);
+    setShowBuyPoints(false);
+    setShowPointsCenter(false);
+    setShowPointsMall(false);
+    setShowMessages(false);
+    setShowHelpCenter(false);
+    logout();
+  };
+
+  const handleOpenMiniProgram = () => {
+    setAppMode('mini_program');
+  };
 
   const handleCheckout = (items: any[]) => {
     setCheckoutItems(items);
@@ -145,7 +186,12 @@ function AppContent() {
     setShowEmployeeAuth(false);
     setShowMessages(false);
     setShowHelpCenter(false);
+    setInitialSettingSubPage(null);
     setHelpCenterQuery('');
+  };
+
+  const clearInitialSettingSubPage = () => {
+    setInitialSettingSubPage(null);
   };
 
   const renderMainContent = () => {
@@ -192,6 +238,8 @@ function AppContent() {
             onShowPointsMall={() => setShowPointsMall(true)}
             onShowLogin={() => setShowLogin(true)}
             onShowCustomerService={() => setShowCustomerService(true)}
+            initialSettingSubPage={initialSettingSubPage}
+            clearInitialSettingSubPage={clearInitialSettingSubPage}
           />
         );
       default:
@@ -214,105 +262,129 @@ function AppContent() {
   return (
     <div className="min-h-screen bg-[#1c1c1e] flex items-center justify-center p-0 sm:p-4">
       <div ref={constraintsRef} className="w-full max-w-[430px] h-screen sm:h-[844px] bg-gray-50 relative overflow-hidden flex flex-col shadow-2xl sm:rounded-[32px] sm:border-[8px] sm:border-black">
-        <MiniProgramCapsule />
-        <NotificationToast onClick={() => setShowMessages(true)} />
-      {/* Global Customer Service Button */}
-      {!showCheckout && !afterSalesInfo && !showCompensation && !showEmployeeAuth && !showEmployeeMall && !showInternalOrders && !showBuyPoints && !showPointsMall && !showPointsCenter && !showMessages && (
-        <motion.div 
-          drag
-          dragMomentum={false}
-          dragConstraints={constraintsRef}
-          onClick={() => setShowCustomerService(true)}
-          className="absolute top-24 right-4 z-[100] w-12 h-12 rounded-full bg-white/90 backdrop-blur-md shadow-2xl flex items-center justify-center cursor-move active:scale-95 transition-transform border border-donghai/20"
-        >
-          <Headphones className="w-6 h-6 text-donghai" />
-          <div className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full border-2 border-white flex items-center justify-center">
-            <span className="text-[8px] text-white font-bold">1</span>
-          </div>
-        </motion.div>
-      )}
+        <AnimatePresence mode="wait">
+          {appMode === 'wechat' ? (
+            <motion.div
+              key="wechat"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="flex-1 overflow-hidden"
+            >
+              <WeChatHome onOpenMiniProgram={handleOpenMiniProgram} />
+            </motion.div>
+          ) : (
+            <motion.div
+              key="mini_program"
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.8, opacity: 0 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+              className="flex-1 flex flex-col relative overflow-hidden"
+            >
+              <MiniProgramCapsule onMinimize={handleMinimize} onClose={handleClose} />
+              <NotificationToast onClick={() => setShowMessages(true)} />
+            
+            {/* Global Customer Service Button */}
+            {!showCheckout && !afterSalesInfo && !showCompensation && !showEmployeeAuth && !showEmployeeMall && !showInternalOrders && !showBuyPoints && !showPointsMall && !showPointsCenter && !showMessages && (
+              <motion.div 
+                drag
+                dragMomentum={false}
+                dragConstraints={constraintsRef}
+                onClick={() => setShowCustomerService(true)}
+                className="absolute top-24 right-4 z-[100] w-12 h-12 rounded-full bg-white/90 backdrop-blur-md shadow-2xl flex items-center justify-center cursor-move active:scale-95 transition-transform border border-donghai/20"
+              >
+                <Headphones className="w-6 h-6 text-donghai" />
+                <div className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full border-2 border-white flex items-center justify-center">
+                  <span className="text-[8px] text-white font-bold">1</span>
+                </div>
+              </motion.div>
+            )}
 
-      {showCheckout ? (
-        <Checkout 
-          items={checkoutItems} 
-          onBack={() => setShowCheckout(false)} 
-          onSuccess={handleCheckoutSuccess} 
-        />
-      ) : showHelpCenter ? (
-        <HelpCenter onBack={() => {
-          setShowHelpCenter(false);
-          setHelpCenterQuery('');
-        }} initialSearch={helpCenterQuery} />
-      ) : afterSalesInfo ? (
-        <AfterSales 
-          orderId={afterSalesInfo.orderId} 
-          productId={afterSalesInfo.productId} 
-          onBack={() => setAfterSalesInfo(null)} 
-        />
-      ) : showCompensation ? (
-        <Compensation onBack={() => setShowCompensation(false)} />
-      ) : showEmployeeAuth ? (
-        <EmployeeAuth onBack={() => setShowEmployeeAuth(false)} />
-      ) : showMessages ? (
-        <MessageCenter 
-          onBack={() => setShowMessages(false)} 
-          onNavigate={(type, id) => {
-            setShowMessages(false);
-            if (type === 'order') {
-              handleTabChange('orders', id);
-            } else if (type === 'compensation') {
-              setShowCompensation(true);
-            }
-          }} 
-        />
-      ) : showEmployeeMall ? (
-        <EmployeeMall 
-          onBack={() => setShowEmployeeMall(false)} 
-          onCheckout={handleCheckout}
-          onShowLogin={() => setShowLogin(true)}
-          onTabChange={handleTabChange}
-          onShowCustomerService={() => setShowCustomerService(true)}
-        />
-      ) : showInternalOrders ? (
-        <Orders 
-          onApplyAfterSales={handleApplyAfterSales} 
-          onBack={() => setShowInternalOrders(false)}
-          isInternalOnly={true} 
-        />
-      ) : showBuyPoints ? (
-        <BuyPoints onBack={() => setShowBuyPoints(false)} />
-      ) : showPointsMall ? (
-        <PointsMall 
-          onBack={() => setShowPointsMall(false)} 
-          onCheckout={handleCheckout}
-          onShowLogin={() => setShowLogin(true)}
-          onTabChange={handleTabChange}
-          onShowCustomerService={() => setShowCustomerService(true)}
-        />
-      ) : showPointsCenter ? (
-        <PointsCenter 
-          onBack={() => setShowPointsCenter(false)} 
-          onShowBuyPoints={() => setShowBuyPoints(true)}
-          onShowPointsMall={() => setShowPointsMall(true)}
-        />
-      ) : (
-        <>
-          <div className="flex-1 overflow-y-auto no-scrollbar pb-20">
-            {renderMainContent()}
-          </div>
-          <BottomNav activeTab={activeTab} setActiveTab={handleTabChange} onShowLogin={() => setShowLogin(true)} />
-        </>
-      )}
-      <LoginOverlay isOpen={showLogin} onClose={() => setShowLogin(false)} />
-      <CustomerService 
-        isOpen={showCustomerService} 
-        onClose={() => setShowCustomerService(false)} 
-        onOpenHelp={(query) => {
-          setShowCustomerService(false);
-          setHelpCenterQuery(query || '');
-          setShowHelpCenter(true);
-        }}
-      />
+            {showCheckout ? (
+              <Checkout 
+                items={checkoutItems} 
+                onBack={() => setShowCheckout(false)} 
+                onSuccess={handleCheckoutSuccess} 
+              />
+            ) : showHelpCenter ? (
+              <HelpCenter onBack={() => {
+                setShowHelpCenter(false);
+                setHelpCenterQuery('');
+              }} initialSearch={helpCenterQuery} />
+            ) : afterSalesInfo ? (
+              <AfterSales 
+                orderId={afterSalesInfo.orderId} 
+                productId={afterSalesInfo.productId} 
+                onBack={() => setAfterSalesInfo(null)} 
+              />
+            ) : showCompensation ? (
+              <Compensation onBack={() => setShowCompensation(false)} />
+            ) : showEmployeeAuth ? (
+              <EmployeeAuth onBack={() => setShowEmployeeAuth(false)} />
+            ) : showMessages ? (
+              <MessageCenter 
+                onBack={() => setShowMessages(false)} 
+                onNavigate={(type, id) => {
+                  setShowMessages(false);
+                  if (type === 'order') {
+                    handleTabChange('orders', id);
+                  } else if (type === 'compensation') {
+                    setShowCompensation(true);
+                  }
+                }} 
+              />
+            ) : showEmployeeMall ? (
+              <EmployeeMall 
+                onBack={() => setShowEmployeeMall(false)} 
+                onCheckout={handleCheckout}
+                onShowLogin={() => setShowLogin(true)}
+                onTabChange={handleTabChange}
+                onShowCustomerService={() => setShowCustomerService(true)}
+              />
+            ) : showInternalOrders ? (
+              <Orders 
+                onApplyAfterSales={handleApplyAfterSales} 
+                onBack={() => setShowInternalOrders(false)}
+                isInternalOnly={true} 
+              />
+            ) : showBuyPoints ? (
+              <BuyPoints onBack={() => setShowBuyPoints(false)} />
+            ) : showPointsMall ? (
+              <PointsMall 
+                onBack={() => setShowPointsMall(false)} 
+                onCheckout={handleCheckout}
+                onShowLogin={() => setShowLogin(true)}
+                onTabChange={handleTabChange}
+                onShowCustomerService={() => setShowCustomerService(true)}
+              />
+            ) : showPointsCenter ? (
+              <PointsCenter 
+                onBack={() => setShowPointsCenter(false)} 
+                onShowBuyPoints={() => setShowBuyPoints(true)}
+                onShowPointsMall={() => setShowPointsMall(true)}
+              />
+            ) : (
+              <>
+                <div className="flex-1 overflow-y-auto no-scrollbar pb-20">
+                  {renderMainContent()}
+                </div>
+                <BottomNav activeTab={activeTab} setActiveTab={handleTabChange} onShowLogin={() => setShowLogin(true)} />
+              </>
+            )}
+            <LoginOverlay isOpen={showLogin} onClose={() => setShowLogin(false)} />
+            <CustomerService 
+              isOpen={showCustomerService} 
+              onClose={() => setShowCustomerService(false)} 
+              onOpenHelp={(query) => {
+                setShowCustomerService(false);
+                setHelpCenterQuery(query || '');
+                setShowHelpCenter(true);
+              }}
+            />
+          </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );

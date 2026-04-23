@@ -9,9 +9,10 @@ import {
   Zap,
   CreditCard,
   ArrowUpRight,
-  ArrowDownLeft
+  ArrowDownLeft,
+  X
 } from 'lucide-react';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { useAuth } from '../context/AuthContext';
@@ -19,6 +20,7 @@ import { useAuth } from '../context/AuthContext';
 export default function PointsCenter({ onBack, onShowBuyPoints, onShowPointsMall }: { onBack: () => void, onShowBuyPoints: () => void, onShowPointsMall: () => void }) {
   const { userInfo } = useAuth();
   const [showAllRecords, setShowAllRecords] = useState(false);
+  const [showRules, setShowRules] = useState(false);
 
   const quickActions = [
     { 
@@ -103,9 +105,9 @@ export default function PointsCenter({ onBack, onShowBuyPoints, onShowPointsMall
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-2">
             <ChevronLeft className="w-6 h-6 cursor-pointer" onClick={onBack} />
-            <h1 className="text-lg font-bold">积分中心</h1>
+            <h1 className="text-lg font-bold">积分商城中心</h1>
           </div>
-          <Button variant="ghost" size="sm" className="text-gray-400 text-xs gap-1" onClick={() => alert('积分规则：1.积分长期有效；2.1元=10积分')}>
+          <Button variant="ghost" size="sm" className="text-gray-400 text-xs gap-1" onClick={() => setShowRules(true)}>
             <Star className="w-3 h-3" />
             规则说明
           </Button>
@@ -191,6 +193,44 @@ export default function PointsCenter({ onBack, onShowBuyPoints, onShowPointsMall
           )}
         </div>
       </div>
+
+      {/* Rules Modal */}
+      <AnimatePresence>
+        {showRules && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center px-6">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+              onClick={() => setShowRules(false)}
+            />
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="relative bg-white rounded-[32px] p-6 w-full max-w-xs shadow-2xl"
+            >
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-bold text-gray-800">积分规则说明</h3>
+                <X className="w-5 h-5 text-gray-400 cursor-pointer" onClick={() => setShowRules(false)} />
+              </div>
+              <div className="text-xs text-gray-500 space-y-3 leading-relaxed mb-6">
+                <p>1. 积分仅支持以下情况获取：现金购买、赔付发放、退货退积分。</p>
+                <p>2. 当前商城默认积分兑换比例为：1元 = 10积分（具体视商品单独配置可能略有浮动）。</p>
+                <p>3. 积分有效期可于个人中心查询，逾期作废。</p>
+                <p>4. 积分支付方式如果失效，请联系客服处理。</p>
+              </div>
+              <Button 
+                className="w-full bg-donghai text-white rounded-full h-11 font-bold"
+                onClick={() => setShowRules(false)}
+              >
+                我知道了
+              </Button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

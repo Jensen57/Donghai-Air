@@ -18,7 +18,13 @@ import {
   Loader2,
   Coins,
   X,
-  CreditCard
+  CreditCard,
+  Share2,
+  MoreHorizontal,
+  ChevronDown,
+  ChevronUp,
+  ShieldCheck,
+  Store
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useAuth, Order, OrderStatus } from '../context/AuthContext';
@@ -32,6 +38,141 @@ const STATUS_MAP: Record<OrderStatus, { label: string, color: string }> = {
   afterSalesRejected: { label: '审核失败', color: 'text-red-400' },
   completed: { label: '已完成', color: 'text-gray-400' },
   cancelled: { label: '已取消', color: 'text-gray-300' }
+};
+
+const OrderListCard = ({ 
+  order, 
+  onSelect, 
+  onPay, 
+  onUpdateStatus, 
+  STATUS_MAP 
+}: { 
+  order: Order, 
+  onSelect: (o: Order) => void,
+  onPay: (o: Order) => void,
+  onUpdateStatus: (id: string, s: OrderStatus) => void,
+  STATUS_MAP: any
+}) => {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const items = isExpanded ? order.items : order.items.slice(0, 1);
+  const hasMultiple = order.items.length > 1;
+
+  return (
+    <Card 
+      onClick={() => onSelect(order)}
+      className="px-2.5 py-1.5 border-none shadow-sm bg-white rounded-xl active:bg-gray-50 transition-colors"
+    >
+      <div className="flex items-center justify-between mb-1.5">
+        <div className="flex items-center text-[10px] text-gray-400 font-mono opacity-60">
+          <span>{order.id}</span>
+          {order.isInternal && (
+            <span className="ml-1 px-1 bg-blue-50 text-blue-500 rounded-sm">内购</span>
+          )}
+        </div>
+        <span className={`text-[11px] font-bold ${STATUS_MAP[order.status].color}`}>
+          {STATUS_MAP[order.status].label}
+        </span>
+      </div>
+      
+      <motion.div layout className="space-y-3">
+        <AnimatePresence mode="popLayout">
+          {items.map((item, i) => (
+            <motion.div 
+              key={`${order.id}-${i}`}
+              initial={{ opacity: i === 0 ? 1 : 0, y: i === 0 ? 0 : -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.2, delay: i === 0 ? 0 : i * 0.05 }}
+              className="flex gap-2 items-center"
+            >
+              <img src={item.image} alt={item.name} className="w-10 h-10 rounded-md object-cover bg-gray-50 flex-shrink-0" referrerPolicy="no-referrer" />
+              <div className="flex-1 flex flex-col justify-center min-w-0">
+                <h4 className="text-[13px] font-medium text-gray-800 truncate leading-tight">{item.name}</h4>
+                <div className="flex items-center justify-between mt-1">
+                  <span className="text-[11px] text-gray-400 truncate max-w-[120px]">
+                    {Object.values(item.specs).join('/')}
+                  </span>
+                  <div className="flex items-baseline gap-1.5 font-bold">
+                    <span className="text-[11px] text-gray-400 font-normal">x{item.quantity}</span>
+                    {item.isPointsOnly ? (
+                      <div className="flex items-center gap-0.5 text-donghai text-[12px]">
+                        <Coins className="w-2.5 h-2.5" />
+                        <span>{item.points}</span>
+                      </div>
+                    ) : (
+                      <div className="text-donghai text-[12px]">¥{item.price}</div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          ))}
+        </AnimatePresence>
+      </motion.div>
+
+      {hasMultiple && (
+        <div 
+          onClick={(e) => {
+            e.stopPropagation();
+            setIsExpanded(!isExpanded);
+          }}
+          className="flex items-center justify-center py-1.5 mt-2 text-[10px] text-gray-400 gap-1 bg-gray-50/50 rounded-lg cursor-pointer border border-dashed border-gray-100 hover:bg-gray-100 transition-colors"
+        >
+          <span>{isExpanded ? '收起商品' : `查看全部商品 (共${order.items.length}件)`}</span>
+          <ChevronDown className={`w-3 h-3 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`} />
+        </div>
+      )}
+
+      <div className="flex justify-between items-center mt-2.5 pt-2 border-t border-gray-50/50">
+        <div className="text-[11px] text-gray-400">
+          实付: <span className="text-donghai font-bold">
+            {order.totalAmount > 0 ? `¥${order.totalAmount}` : ''}
+            {order.totalPoints && order.totalPoints > 0 ? `${order.totalAmount > 0 ? '+' : ''}${order.totalPoints}积分` : ''}
+          </span>
+        </div>
+        <div className="flex gap-1.5">
+          {order.status === 'pendingPayment' && (
+            <Button 
+              size="sm" 
+              className="rounded-full text-[11px] h-6 px-4 bg-donghai text-white py-0 font-bold"
+              onClick={(e) => {
+                e.stopPropagation();
+                onPay(order);
+              }}
+            >
+              去支付
+            </Button>
+          )}
+          {(order.status === 'pendingShipment' || order.status === 'pendingReceipt') && (
+            <Button 
+              size="sm" 
+              className="rounded-full text-[11px] h-6 px-4 bg-donghai text-white py-0 font-bold"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (order.status === 'pendingShipment') onUpdateStatus(order.id, 'pendingReceipt');
+                else onUpdateStatus(order.id, 'completed');
+              }}
+            >
+              {order.status === 'pendingShipment' ? '发货' : '收货'}
+            </Button>
+          )}
+          {(order.status === 'completed' || order.status === 'afterSalesCompleted' || order.status === 'afterSalesRejected') && (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="rounded-full text-[11px] h-6 px-4 border-donghai text-donghai py-0 font-bold" 
+              onClick={(e) => {
+                e.stopPropagation();
+                onSelect(order);
+              }}
+            >
+              {(order.status === 'afterSalesCompleted' || order.status === 'afterSalesRejected') ? '查看详情' : '再来一单'}
+            </Button>
+          )}
+        </div>
+      </div>
+    </Card>
+  );
 };
 
 // Logistics View
@@ -117,168 +258,221 @@ const LogisticsDetail = ({ order, onBack }: { order: Order, onBack: () => void }
 
 // Order Detail View
 const OrderDetail = ({ order, onBack, onShowLogistics, onApplyAfterSales, onPay, isPaying }: { order: Order, onBack: () => void, onShowLogistics: () => void, onApplyAfterSales: (productId: string) => void, onPay: (order: Order) => void, isPaying: boolean }) => {
-  const { updateOrderStatus, shipOrder } = useAuth();
+  const { updateOrderStatus, shipOrder, userInfo } = useAuth();
+  const [isExpanded, setIsExpanded] = useState(false);
   const statusInfo = STATUS_MAP[order.status];
 
+  // Mock store name
+  const storeName = "东海航空旗舰店";
+
   return (
-    <div className="flex flex-col h-full bg-gray-50">
-      <div className="bg-white px-4 pt-12 pb-4 flex items-center gap-2 sticky top-0 z-50 border-b">
+    <div className="flex flex-col h-full bg-gray-50 pb-20">
+      {/* Navigation Header */}
+      <div className="bg-white px-4 pt-12 pb-4 flex items-center justify-between sticky top-0 z-50 border-b">
         <ChevronLeft className="w-6 h-6 cursor-pointer" onClick={onBack} />
-        <h1 className="text-lg font-bold">订单详情</h1>
+        <h1 className="text-base font-bold text-gray-800">订单详情</h1>
+        <div className="flex items-center gap-4">
+          <Share2 className="w-5 h-5 text-gray-600" />
+          <MoreHorizontal className="w-6 h-6 text-gray-600" />
+        </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 pb-32">
-        {/* Status Banner */}
-        <div className={`${
-          order.status === 'afterSalesRejected' ? 'bg-red-500' : 
-          order.status === 'pendingPayment' ? 'bg-orange-500' : 'bg-donghai'
-        } rounded-2xl p-6 text-white flex items-center justify-between`}>
-          <div>
-            <h2 className="text-xl font-bold mb-1">{statusInfo.label}</h2>
-            <p className="text-xs opacity-80">
-              {order.status === 'pendingPayment' && '订单已提交，请尽快完成支付'}
-              {order.status === 'pendingShipment' && '商品正在准备中，请耐心等待'}
-              {order.status === 'pendingReceipt' && '商品已发出，请注意查收'}
-              {order.status === 'completed' && '订单已完成，感谢您的支持'}
-              {order.status === 'afterSales' && '售后处理中，请关注进度'}
-              {order.status === 'afterSalesCompleted' && '售后服务已处理完成'}
-              {order.status === 'afterSalesRejected' && '售后申请未通过审核'}
-            </p>
+      <div className="flex-1 overflow-y-auto space-y-3 p-3">
+        {/* Simplified Status Info (as per P2/P3, not a big banner) */}
+        <div className="px-1 py-1 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className={`w-5 h-5 ${statusInfo.color}`} />
+            <h2 className={`text-lg font-bold ${statusInfo.color}`}>{statusInfo.label}</h2>
           </div>
-          <Package className="w-12 h-12 opacity-20" />
+          <p className="text-[10px] text-gray-400">
+            {order.status === 'completed' && '订单已完成，感谢您的支持'}
+            {order.status === 'pendingPayment' && '请尽快完成支付'}
+            {order.status === 'pendingShipment' && '商品准备中'}
+            {order.status === 'pendingReceipt' && '包裹已在路上'}
+          </p>
         </div>
 
-        {/* Logistics Entry */}
-        {order.logistics && (
-          <Card 
-            className="p-4 border-none shadow-sm bg-white rounded-2xl flex items-center gap-3 active:bg-gray-50"
-            onClick={onShowLogistics}
-          >
-            <Truck className="w-5 h-5 text-donghai" />
-            <div className="flex-1">
-              <p className="text-xs text-donghai font-bold line-clamp-1">{order.logistics.trajectory[0].status}</p>
-              <p className="text-[10px] text-gray-400 mt-0.5">{order.logistics.trajectory[0].time}</p>
+        {/* Store & Items Card */}
+        <Card className="p-4 border-none shadow-sm bg-white rounded-2xl">
+          <div className="flex items-center gap-2 mb-4 border-b border-gray-50 pb-3">
+            <div className="w-5 h-5 bg-donghai rounded flex items-center justify-center">
+              <Store className="w-3 h-3 text-white" />
             </div>
-            <ChevronRight className="w-4 h-4 text-gray-300" />
-          </Card>
-        )}
+            <span className="text-xs font-bold text-gray-800">{storeName}</span>
+            <ChevronRight className="w-3 h-3 text-gray-300" />
+          </div>
 
-        {/* Address */}
-        {order.address && (
-          <Card className="p-4 border-none shadow-sm bg-white rounded-2xl flex items-start gap-3">
-            <MapPin className="w-5 h-5 text-gray-400 mt-0.5" />
-            <div className="flex-1">
-              <div className="flex items-center gap-2 mb-1">
-                <span className="text-sm font-bold text-gray-800">{order.address.receiver}</span>
-                <span className="text-sm text-gray-500">{order.address.phone}</span>
-              </div>
-              <p className="text-xs text-gray-500">
-                {order.address.province}{order.address.city}{order.address.district}{order.address.detail}
-              </p>
-            </div>
-          </Card>
-        )}
-
-        {/* Items */}
-        <Card className="p-4 border-none shadow-sm bg-white rounded-2xl space-y-4">
-          {order.items.map((item, i) => (
-            <div key={i} className="space-y-3">
-              <div className="flex gap-3">
-                <img src={item.image} alt={item.name} className="w-20 h-20 rounded-lg object-cover bg-gray-50" />
-                <div className="flex-1 flex flex-col justify-between py-0.5">
-                  <h4 className="text-xs font-medium text-gray-800 line-clamp-2">{item.name}</h4>
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] text-gray-400">
-                      {Object.values(item.specs).join(' / ')}
-                    </span>
-                    <span className="text-xs text-gray-500">x{item.quantity}</span>
-                  </div>
-                  {item.isPointsOnly ? (
-                    <div className="flex items-center gap-0.5 text-donghai font-bold text-sm">
-                      <Coins className="w-3.5 h-3.5" />
-                      <span>{item.points}</span>
+          <div className="space-y-6">
+            {order.items.map((item, i) => (
+              <div key={i} className="space-y-4">
+                <div className="flex gap-3">
+                  <img 
+                    src={item.image} 
+                    alt={item.name} 
+                    className="w-20 h-20 rounded-xl object-cover bg-gray-50 flex-shrink-0"
+                    referrerPolicy="no-referrer"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex justify-between items-start gap-2">
+                      <h4 className="text-sm font-bold text-gray-800 line-clamp-2 leading-snug">{item.name}</h4>
+                      <div className="text-right flex-shrink-0">
+                        {item.isPointsOnly ? (
+                          <div className="flex items-center gap-0.5 text-donghai font-bold text-sm">
+                            <Coins className="w-3 h-3" />
+                            <span>{item.points}</span>
+                          </div>
+                        ) : (
+                          <>
+                            <div className="text-gray-800 font-bold text-sm">¥{item.price}</div>
+                            <div className="text-[10px] text-gray-300 line-through">¥{(item.price * 1.2).toFixed(2)}</div>
+                          </>
+                        )}
+                      </div>
                     </div>
-                  ) : (
-                    <div className="text-donghai font-bold text-sm">¥{item.price}</div>
+                    <p className="text-[10px] text-gray-400 mt-1">
+                      数量 x{item.quantity}，{Object.values(item.specs).join(', ')}
+                    </p>
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      <span className="text-[9px] text-donghai bg-donghai/5 px-1.5 py-0.5 rounded border border-donghai/10">7天无理由退货</span>
+                      <span className="text-[9px] text-donghai bg-donghai/5 px-1.5 py-0.5 rounded border border-donghai/10">7天价保</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Actions Per Item/Order as in P2 */}
+                <div className="flex justify-end gap-3">
+                  {order.status === 'completed' && (
+                    <>
+                      <Button variant="outline" size="sm" className="rounded-full text-[10px] h-8 px-4 border-gray-100" onClick={() => onApplyAfterSales(item.productId)}>申请售后</Button>
+                    </>
                   )}
+                  <Button variant="outline" size="sm" className="rounded-full text-[10px] h-8 px-4 border-gray-100">加购物车</Button>
                 </div>
               </div>
-              {order.status === 'completed' && (
-                <div className="flex justify-end">
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="rounded-full text-[10px] h-7 px-4 border-gray-100 text-gray-500"
-                    onClick={() => onApplyAfterSales(item.productId)}
-                  >
-                    申请售后
-                  </Button>
+            ))}
+          </div>
+
+          <div className="mt-6 pt-4 border-t border-gray-50 space-y-4">
+             <div className="flex justify-between items-center text-xs">
+                <span className="text-gray-400">商品总额</span>
+                <span className="text-gray-800 font-medium">¥{order.totalAmount.toFixed(2)}</span>
+             </div>
+             <div className="flex justify-between items-center text-xs font-bold">
+                <span className="text-gray-800">实付款</span>
+                <div className="flex items-center gap-1">
+                  <span className="text-[10px] text-red-500 font-normal">共减¥{(order.totalAmount * 0.1).toFixed(2)}</span>
+                  <span className="text-lg text-donghai">¥{order.totalAmount.toFixed(2)}</span>
+                  <ChevronRight className="w-3 h-3 text-donghai" />
                 </div>
-              )}
-            </div>
-          ))}
-          <div className="border-t pt-4 flex flex-col gap-2">
-            <div className="flex justify-between text-xs">
-              <span className="text-gray-500">商品总额</span>
-              <div className="flex flex-col items-end">
-                {order.totalAmount > 0 && <span className="text-gray-800">¥{order.totalAmount}</span>}
-                {order.totalPoints && order.totalPoints > 0 && (
-                  <div className="flex items-center gap-0.5 text-donghai font-bold">
-                    <Coins className="w-3 h-3" />
-                    <span>{order.totalPoints}</span>
+             </div>
+
+             {/* Merged Order Info Section */}
+             <div className="pt-4 border-t border-gray-50 flex flex-col">
+                <div className="space-y-4">
+                  <div className="flex justify-between text-[11px]">
+                    <span className="text-gray-400 font-medium">订单编号</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-gray-600 truncate max-w-[150px] font-mono">{order.id}</span>
+                      <button onClick={() => {}} className="text-gray-300">复制</button>
+                    </div>
                   </div>
-                )}
-              </div>
-            </div>
-            <div className="flex justify-between text-xs">
-              <span className="text-gray-500">运费</span>
-              <span className="text-gray-800">¥0.00</span>
-            </div>
-            <div className="flex justify-between text-sm font-bold pt-1">
-              <span className="text-gray-800">实付款</span>
-              <div className="flex flex-col items-end">
-                {order.totalAmount > 0 && <span className="text-donghai">¥{order.totalAmount}</span>}
-                {order.totalPoints && order.totalPoints > 0 && (
-                  <div className="flex items-center gap-0.5 text-donghai font-bold">
-                    <Coins className="w-3.5 h-3.5" />
-                    <span>{order.totalPoints}</span>
-                  </div>
-                )}
-              </div>
-            </div>
+                  
+                  <AnimatePresence>
+                    {isExpanded && (
+                      <motion.div 
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        className="overflow-hidden space-y-4 pt-4 border-t border-gray-50"
+                      >
+                        <div className="flex justify-between items-start text-[11px]">
+                          <span className="text-gray-400">交易快照</span>
+                          <p className="text-right text-gray-500 max-w-[180px]">发生交易争议时，可作为判断依据</p>
+                        </div>
+                        <div className="flex justify-between text-[11px]">
+                          <span className="text-gray-400">支付方式</span>
+                          <span className="text-gray-600">{order.paymentMethod}</span>
+                        </div>
+                        <div className="flex justify-between text-[11px]">
+                          <span className="text-gray-400">发票类型</span>
+                          <span className="text-gray-600">个人发票</span>
+                        </div>
+                        {order.paymentTime && (
+                          <div className="flex justify-between text-[11px]">
+                            <span className="text-gray-400">支付时间</span>
+                            <span className="text-gray-600">{order.paymentTime}</span>
+                          </div>
+                        )}
+                        <div className="flex justify-between text-[11px]">
+                          <span className="text-gray-400">下单时间</span>
+                          <span className="text-gray-600">{order.createdAt}</span>
+                        </div>
+                        <div className="border-t border-gray-50 pt-4 space-y-3">
+                          <div className="flex justify-between text-[11px]">
+                            <span className="text-gray-400">配送方式</span>
+                            <span className="text-gray-600">东海航空配送</span>
+                          </div>
+                          <div className="flex justify-between text-[11px]">
+                            <span className="text-gray-400">收货信息</span>
+                            <span className="text-gray-600">{order.address?.receiver} {order.address?.phone?.replace(/(\d{3})\d{4}(\d{4})/, '$1****$2')}</span>
+                          </div>
+                          <div className="flex flex-col gap-1 text-[11px]">
+                            <span className="text-gray-400">收货地址</span>
+                            <p className="text-gray-600 font-medium">
+                              {order.address?.province}{order.address?.city}{order.address?.district}{order.address?.detail}
+                            </p>
+                          </div>
+                          <div className="flex justify-between text-[11px]">
+                            <span className="text-gray-400">收货方式</span>
+                            <span className="text-gray-600">送货上门</span>
+                          </div>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+
+                <div 
+                  onClick={() => setIsExpanded(!isExpanded)}
+                  className="mt-4 flex items-center justify-center gap-1 py-1 text-[11px] text-gray-400 cursor-pointer"
+                >
+                  <span>{isExpanded ? '收起' : '全部订单信息'}</span>
+                  {isExpanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                </div>
+             </div>
           </div>
         </Card>
 
-        {/* Order Info */}
-        <Card className="p-4 border-none shadow-sm bg-white rounded-2xl space-y-3">
-          <div className="flex justify-between text-[11px]">
-            <span className="text-gray-400">订单编号</span>
-            <div className="flex items-center gap-1 text-gray-600">
-              {order.id}
-              <Copy className="w-3 h-3" />
+        {/* Security / Assurance Banner (Restored) */}
+        <div className="py-4">
+          <div className="flex items-center justify-between px-2 mb-3">
+            <div className="flex items-center gap-1.5">
+              <ShieldCheck className="w-4 h-4 text-donghai" />
+              <span className="text-xs font-bold text-gray-800">安心保障</span>
+            </div>
+            <div className="flex items-center gap-1 text-[10px] text-gray-400">
+              <span>查看全部</span>
+              <ChevronRight className="w-2.5 h-2.5" />
             </div>
           </div>
-          {order.isInternal && (
-            <div className="flex justify-between text-[11px]">
-              <span className="text-gray-400">售后通道</span>
-              <Badge className="bg-blue-50 text-blue-500 text-[9px] h-4 px-2 border-none">员工专属售后通道</Badge>
-            </div>
-          )}
-          <div className="flex justify-between text-[11px]">
-            <span className="text-gray-400">创建时间</span>
-            <span className="text-gray-600">{order.createdAt}</span>
+          <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2">
+            {[
+              { title: '先行赔付', desc: '最高赔付2000元' },
+              { title: '正品保证', desc: '官方严选假一赔十' },
+              { title: '售后无忧', desc: '专属客服实时在线' }
+            ].map((item, i) => (
+              <div key={i} className="min-w-[160px] bg-white p-3 rounded-xl border border-gray-50 flex items-center gap-3 shadow-sm">
+                <div className="w-8 h-8 rounded-lg bg-donghai/5 flex items-center justify-center">
+                  <ShieldCheck className="w-4 h-4 text-donghai" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[10px] font-bold text-gray-800 truncate">{item.title}</p>
+                  <p className="text-[8px] text-gray-400 truncate">{item.desc}</p>
+                </div>
+              </div>
+            ))}
           </div>
-          {order.paymentTime && (
-            <div className="flex justify-between text-[11px]">
-              <span className="text-gray-400">支付时间</span>
-              <span className="text-gray-600">{order.paymentTime}</span>
-            </div>
-          )}
-          <div className="flex justify-between text-[11px]">
-            <span className="text-gray-400">支付方式</span>
-            <span className="text-gray-600">{order.paymentMethod}</span>
-          </div>
-        </Card>
+        </div>
       </div>
 
       {/* Footer Actions */}
@@ -460,103 +654,14 @@ export default function Orders({ onApplyAfterSales, onBack, isInternalOnly = fal
 
             <div className="flex-1 overflow-y-auto no-scrollbar p-3 space-y-2 pb-32">
               {filteredOrders.map((order) => (
-                <Card 
-                  key={order.id} 
-                  className="px-2.5 py-1.5 border-none shadow-sm bg-white rounded-xl active:bg-gray-50 transition-colors"
-                  onClick={() => setSelectedOrder(order)}
-                >
-                  <div className="flex items-center justify-between mb-1.5">
-                    <div className="flex items-center text-[10px] text-gray-400 font-mono opacity-60">
-                      <span>{order.id}</span>
-                      {order.isInternal && (
-                        <span className="ml-1 px-1 bg-blue-50 text-blue-500 rounded-sm">内购</span>
-                      )}
-                    </div>
-                    <span className={`text-[11px] font-bold ${STATUS_MAP[order.status].color}`}>
-                      {STATUS_MAP[order.status].label}
-                    </span>
-                  </div>
-                  
-                  {order.items.slice(0, 1).map((item, i) => (
-                    <div key={i} className="flex gap-2 items-center">
-                      <img src={item.image} alt={item.name} className="w-10 h-10 rounded-md object-cover bg-gray-50 flex-shrink-0" referrerPolicy="no-referrer" />
-                      <div className="flex-1 flex flex-col justify-center min-w-0">
-                        <h4 className="text-[13px] font-medium text-gray-800 truncate leading-tight">{item.name}</h4>
-                        <div className="flex items-center justify-between mt-1">
-                          <span className="text-[11px] text-gray-400 truncate max-w-[120px]">
-                            {Object.values(item.specs).join('/')}
-                          </span>
-                          <div className="flex items-baseline gap-1.5 font-bold">
-                            <span className="text-[11px] text-gray-400 font-normal">x{item.quantity}</span>
-                            {item.isPointsOnly ? (
-                              <div className="flex items-center gap-0.5 text-donghai text-[12px]">
-                                <Coins className="w-2.5 h-2.5" />
-                                <span>{item.points}</span>
-                              </div>
-                            ) : (
-                              <div className="text-donghai text-[12px]">¥{item.price}</div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-
-                  {order.items.length > 1 && (
-                    <div className="text-[10px] text-gray-300 mt-1 pl-12">+第2件等{order.items.length}件</div>
-                  )}
-
-                  <div className="flex justify-between items-center mt-2.5 pt-2 border-t border-gray-50/50">
-                    <div className="text-[11px] text-gray-400">
-                      实付: <span className="text-donghai font-bold">
-                        {order.totalAmount > 0 ? `¥${order.totalAmount}` : ''}
-                        {order.totalPoints && order.totalPoints > 0 ? `${order.totalAmount > 0 ? '+' : ''}${order.totalPoints}积分` : ''}
-                      </span>
-                    </div>
-                    <div className="flex gap-1.5">
-                      {order.status === 'pendingPayment' && (
-                        <Button 
-                          size="sm" 
-                          className="rounded-full text-[11px] h-6 px-4 bg-donghai text-white py-0"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handlePayOrder(order);
-                          }}
-                        >
-                          支付
-                        </Button>
-                      )}
-                      {(order.status === 'pendingShipment' || order.status === 'pendingReceipt') && (
-                        <Button 
-                          size="sm" 
-                          className="rounded-full text-[11px] h-6 px-4 bg-donghai text-white py-0"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (order.status === 'pendingShipment') shipOrder(order.id);
-                            else updateOrderStatus(order.id, 'completed');
-                          }}
-                        >
-                          {order.status === 'pendingShipment' ? '发货' : '收货'}
-                        </Button>
-                      )}
-                      {(order.status === 'completed' || order.status === 'afterSalesCompleted' || order.status === 'afterSalesRejected') && (
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          className="rounded-full text-[11px] h-6 px-4 border-donghai text-donghai py-0" 
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (order.status === 'afterSalesCompleted' || order.status === 'afterSalesRejected' || order.status === 'completed') {
-                              setSelectedOrder(order);
-                            }
-                          }}
-                        >
-                          {(order.status === 'afterSalesCompleted' || order.status === 'afterSalesRejected') ? '查看详情' : '再买'}
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                </Card>
+                <OrderListCard 
+                  key={order.id}
+                  order={order}
+                  onSelect={setSelectedOrder}
+                  onPay={handlePayOrder}
+                  onUpdateStatus={(id, s) => updateOrderStatus(id, s)}
+                  STATUS_MAP={STATUS_MAP}
+                />
               ))}
 
             {filteredOrders.length === 0 && (

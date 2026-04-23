@@ -36,7 +36,13 @@ const MyMiniProgramIcon = () => (
   </svg>
 );
 
-export default function MiniProgramCapsule() {
+export default function MiniProgramCapsule({ 
+  onMinimize, 
+  onClose 
+}: { 
+  onMinimize?: () => void; 
+  onClose?: () => void; 
+}) {
   const [showMenu, setShowMenu] = useState(false);
 
   const menuItems1 = [
@@ -67,11 +73,11 @@ export default function MiniProgramCapsule() {
              </div>
           </button>
           <div className="w-[1px] h-[16px] bg-gray-200"></div>
-          <button className="flex items-center justify-center w-[22px] h-[22px] hover:bg-gray-100 rounded-full transition-colors active:bg-gray-200">
+          <button onClick={onMinimize} className="flex items-center justify-center w-[22px] h-[22px] hover:bg-gray-100 rounded-full transition-colors active:bg-gray-200">
             <Minus className="w-[18px] h-[18px] stroke-[2.5] text-black" />
           </button>
           <div className="w-[1px] h-[16px] bg-gray-200"></div>
-          <button className="flex items-center justify-center w-[22px] h-[22px] hover:bg-gray-100 rounded-full transition-colors active:bg-gray-200">
+          <button onClick={onClose} className="flex items-center justify-center w-[22px] h-[22px] hover:bg-gray-100 rounded-full transition-colors active:bg-gray-200">
             <CircleDot className="w-[18px] h-[18px] stroke-[2.5] text-black" />
           </button>
         </div>

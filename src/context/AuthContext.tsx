@@ -147,6 +147,7 @@ interface UserInfo {
   avatar: string;
   phone?: string;
   points: number;
+  balance: number;
   pointsExpiry: string;
   isEmployee: boolean;
   isIdVerified: boolean;
@@ -209,9 +210,11 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 const DEFAULT_USER_DATA: Partial<UserInfo> = {
   points: 1250,
+  balance: 0,
   pointsExpiry: '2026-12-31',
   isEmployee: false,
   isIdVerified: false,
+  phone: undefined, // Explicitly undefined to force phone binding during checkout
   unreadMessagesCount: 2,
   favorites: [],
   cart: [],

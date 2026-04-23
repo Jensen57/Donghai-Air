@@ -23,8 +23,11 @@ interface AddressManagementProps {
 export default function AddressManagement({ onBack }: AddressManagementProps) {
   const { userInfo, addAddress, updateAddress, deleteAddress } = useAuth();
   const [view, setView] = useState<'list' | 'edit'>('list');
+  const [activeTab, setActiveTab] = useState('推荐');
   const [editingAddress, setEditingAddress] = useState<Partial<Address> | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
+
+  const tabs = ['推荐'];
 
   const handleSave = () => {
     if (!editingAddress?.receiver || !editingAddress?.phone || !editingAddress?.detail) {
@@ -148,53 +151,79 @@ export default function AddressManagement({ onBack }: AddressManagementProps) {
   }
 
   return (
-    <div className="flex flex-col h-full bg-gray-50">
-      <div className="bg-white px-4 pt-12 pb-4 flex items-center gap-2 sticky top-0 z-50 border-b">
-        <ChevronLeft className="w-6 h-6 cursor-pointer" onClick={onBack} />
-        <h1 className="text-lg font-bold">地址管理</h1>
+    <div className="flex flex-col h-full bg-gray-50 uppercase tracking-tight">
+      <div className="bg-white px-4 pt-12 pb-0 sticky top-0 z-50">
+        <div className="flex items-center gap-2 mb-4">
+          <ChevronLeft className="w-6 h-6 cursor-pointer" onClick={onBack} />
+          <h1 className="text-lg font-bold">我的收货地址</h1>
+        </div>
+        
+        <div className="flex gap-6 overflow-x-auto no-scrollbar border-b">
+          {tabs.map(tab => (
+            <div 
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`pb-3 text-sm transition-all relative ${activeTab === tab ? 'text-donghai font-bold' : 'text-gray-500'}`}
+            >
+              {tab}
+              {activeTab === tab && (
+                <motion.div 
+                  layoutId="addrTab"
+                  className="absolute bottom-0 left-0 right-0 h-0.5 bg-donghai"
+                />
+              )}
+            </div>
+          ))}
+        </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      <div className="flex-1 overflow-y-auto p-4 space-y-3">
         {userInfo?.addresses.map((addr) => (
-          <Card key={addr.id} className="p-4 border-none shadow-sm bg-white rounded-2xl relative overflow-hidden group">
-            <div className="flex items-start justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-bold text-gray-800">{addr.receiver}</span>
-                <span className="text-xs text-gray-500">{addr.phone.replace(/(\d{3})\d{4}(\d{4})/, '$1****$2')}</span>
-                {addr.isDefault && (
-                  <Badge className="bg-donghai/10 text-donghai text-[9px] h-4 px-1.5 border-none">默认</Badge>
-                )}
+          <Card key={addr.id} className="p-4 border-none shadow-sm bg-white rounded-2xl relative">
+            <div className="flex items-start justify-between">
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-1.5 text-xs text-gray-400 font-medium">
+                  <MapPin className="w-3 h-3" />
+                  <span>{addr.province} {addr.city} {addr.district}</span>
+                </div>
+                <h3 className="text-sm font-bold text-gray-800 mb-1 leading-snug">{addr.detail}</h3>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-gray-500">{addr.receiver}</span>
+                  <span className="text-xs text-gray-400 font-mono">{addr.phone.replace(/(\d{3})\d{4}(\d{4})/, '$1****$2')}</span>
+                  {addr.isDefault && (
+                    <Badge className="bg-donghai/5 text-donghai text-[9px] h-4 px-1.5 border border-donghai/20 font-bold">默认</Badge>
+                  )}
+                </div>
               </div>
-            </div>
-            <div className="flex gap-2 text-xs text-gray-500 leading-relaxed pr-12">
-              <MapPin className="w-3.5 h-3.5 text-gray-300 shrink-0 mt-0.5" />
-              <span>{addr.province}{addr.city}{addr.district}{addr.detail}</span>
-            </div>
-            
-            <div className="absolute top-4 right-4 flex flex-col gap-3">
-              <div 
-                onClick={() => {
-                  setEditingAddress(addr);
-                  setView('edit');
-                }}
-                className="p-2 bg-gray-50 rounded-full text-gray-400 hover:text-donghai active:bg-donghai/10 transition-colors"
-              >
-                <Edit2 className="w-3.5 h-3.5" />
-              </div>
-              <div 
-                onClick={() => setShowDeleteConfirm(addr.id)}
-                className="p-2 bg-gray-50 rounded-full text-gray-400 hover:text-red-500 active:bg-red-50 transition-colors"
-              >
-                <Trash2 className="w-3.5 h-3.5" />
+              
+              <div className="flex flex-col gap-4 ml-4">
+                <div 
+                  onClick={() => {
+                    setEditingAddress(addr);
+                    setView('edit');
+                  }}
+                  className="text-donghai active:opacity-50"
+                >
+                  <Edit2 className="w-4 h-4" />
+                </div>
+                <div 
+                  onClick={() => setShowDeleteConfirm(addr.id)}
+                  className="text-gray-300 hover:text-red-500"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </div>
               </div>
             </div>
           </Card>
         ))}
 
         {(!userInfo?.addresses || userInfo.addresses.length === 0) && (
-          <div className="flex flex-col items-center justify-center py-20 text-gray-400">
-            <MapPin className="w-16 h-16 mb-4 opacity-10" />
-            <p className="text-sm">暂无收货地址</p>
+          <div className="flex flex-col items-center justify-center py-24 text-gray-400">
+            <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+              <MapPin className="w-10 h-10 opacity-20" />
+            </div>
+            <p className="text-sm font-medium">还没有收货地址哦</p>
+            <p className="text-xs mt-1">添加地址，发现更多好物</p>
           </div>
         )}
       </div>

@@ -11,16 +11,19 @@ import {
   Info,
   CheckCircle2,
   AlertCircle,
-  X
+  X,
+  ShieldCheck
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { motion, AnimatePresence } from 'motion/react';
 import { useAuth } from '../context/AuthContext';
+import EmployeeAuth from './EmployeeAuth';
 
 interface SettingsProps {
   onBack: () => void;
+  initialSubPage?: string | null;
 }
 
 function PhoneBindingPage({ userInfo, onBack, updateUser }: { userInfo: any, onBack: () => void, updateUser: any }) {
@@ -143,14 +146,16 @@ function PhoneBindingPage({ userInfo, onBack, updateUser }: { userInfo: any, onB
   );
 }
 
-export default function Settings({ onBack }: SettingsProps) {
+export default function Settings({ onBack, initialSubPage = null }: SettingsProps) {
   const { userInfo, updateUser } = useAuth();
   const [personalizedAds, setPersonalizedAds] = useState(true);
   const [notifications, setNotifications] = useState(true);
   const [showInfoModal, setShowInfoModal] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [activeSubPage, setActiveSubPage] = useState<string | null>(null);
+  const [activeSubPage, setActiveSubPage] = useState<string | null>(initialSubPage);
+  const [realName, setRealName] = useState('');
+  const [idNumber, setIdNumber] = useState('');
 
   const renderSubPage = () => {
     switch (activeSubPage) {
@@ -177,6 +182,8 @@ export default function Settings({ onBack }: SettingsProps) {
                     <input 
                       type="text" 
                       placeholder="请输入您的真实姓名"
+                      value={realName}
+                      onChange={(e) => setRealName(e.target.value)}
                       className="w-full bg-gray-50 border-none rounded-xl h-12 px-4 text-sm focus:ring-2 focus:ring-donghai transition-all"
                     />
                   </div>
@@ -194,6 +201,8 @@ export default function Settings({ onBack }: SettingsProps) {
                     <input 
                       type="text" 
                       placeholder="请输入您的证件号码"
+                      value={idNumber}
+                      onChange={(e) => setIdNumber(e.target.value)}
                       className="w-full bg-gray-50 border-none rounded-xl h-12 px-4 text-sm focus:ring-2 focus:ring-donghai transition-all"
                     />
                   </div>
@@ -202,7 +211,12 @@ export default function Settings({ onBack }: SettingsProps) {
                 <div className="mt-10">
                   <Button 
                     className="w-full bg-donghai text-white rounded-xl h-12 font-bold"
-                    onClick={() => {
+                    onClick={async () => {
+                      if (!realName || !idNumber) {
+                        alert('请完善姓名和证件号码');
+                        return;
+                      }
+                      await updateUser({ isIdVerified: true });
                       alert('认证申请已提交，审核约需1-3个工作日');
                       setActiveSubPage(null);
                     }}
@@ -281,6 +295,8 @@ export default function Settings({ onBack }: SettingsProps) {
             </div>
           </div>
         );
+      case 'employeeAuth':
+        return <EmployeeAuth onBack={() => setActiveSubPage(null)} />;
       default:
         return null;
     }
@@ -319,7 +335,7 @@ export default function Settings({ onBack }: SettingsProps) {
               </div>
             </div>
             <div 
-              className="flex items-center justify-between p-4 active:bg-gray-50 cursor-pointer"
+              className="flex items-center justify-between p-4 border-b border-gray-50 active:bg-gray-50 cursor-pointer"
               onClick={() => setActiveSubPage('idAuth')}
             >
               <div className="flex items-center gap-3">
@@ -328,6 +344,28 @@ export default function Settings({ onBack }: SettingsProps) {
               </div>
               <div className={`flex items-center gap-1 text-xs ${userInfo?.isIdVerified ? 'text-green-500' : 'text-donghai font-medium'}`}>
                 <span>{userInfo?.isIdVerified ? '已认证' : '去认证'}</span>
+                <ChevronRight className="w-4 h-4 text-gray-300" />
+              </div>
+            </div>
+            <div 
+              className="flex items-center justify-between p-4 active:bg-gray-50 cursor-pointer"
+              onClick={() => setActiveSubPage('employeeAuth')}
+            >
+              <div className="flex items-center gap-3">
+                <ShieldCheck className="w-5 h-5 text-gray-500" />
+                <span className="text-sm text-gray-800">员工内购认证</span>
+              </div>
+              <div className="flex items-center gap-1 text-xs">
+                <span className={
+                  userInfo?.employeeAuth?.status === 'approved' ? 'text-green-500' :
+                  userInfo?.employeeAuth?.status === 'pending' ? 'text-orange-500' :
+                  userInfo?.employeeAuth?.status === 'rejected' ? 'text-red-500' :
+                  'text-gray-400'
+                }>
+                  {userInfo?.employeeAuth?.status === 'approved' ? '已认证' :
+                   userInfo?.employeeAuth?.status === 'pending' ? '审核中' :
+                   userInfo?.employeeAuth?.status === 'rejected' ? '未通过' : '未认证'}
+                </span>
                 <ChevronRight className="w-4 h-4 text-gray-300" />
               </div>
             </div>

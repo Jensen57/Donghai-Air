@@ -12,6 +12,7 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Product } from './ProductDetail';
 import { DETAILED_PRODUCTS, POINTS_PRODUCTS, INTERNAL_PRODUCTS } from '../constants';
+import { useAuth } from '../context/AuthContext';
 
 const ALL_PRODUCTS = [
   ...DETAILED_PRODUCTS.map(p => ({ ...p, type: 'physical' as const, image: p.images[0] })),
@@ -25,6 +26,7 @@ interface SearchPageProps {
 }
 
 export default function SearchPage({ onBack, onProductClick }: SearchPageProps) {
+  const { userInfo } = useAuth();
   const [keyword, setKeyword] = React.useState('');
   const [sortBy, setSortBy] = React.useState<'default' | 'price-asc' | 'price-desc' | 'sales'>('default');
   const [filterType, setFilterType] = React.useState<'all' | 'physical' | 'internal' | 'points'>('all');
@@ -36,6 +38,11 @@ export default function SearchPage({ onBack, onProductClick }: SearchPageProps) 
       p.tag?.toLowerCase().includes(keyword.toLowerCase()) ||
       p.category.toLowerCase().includes(keyword.toLowerCase())
     );
+
+    // Filter out internal products if user is not an employee or their auth is not approved
+    if (!userInfo?.isEmployee || userInfo?.employeeAuth?.status !== 'approved') {
+      filtered = filtered.filter(p => !p.id.startsWith('emp-'));
+    }
 
     if (filterType !== 'all') {
       filtered = filtered.filter(p => p.type === filterType);
@@ -117,7 +124,7 @@ export default function SearchPage({ onBack, onProductClick }: SearchPageProps) 
                 { id: 'physical', label: '实物商品' },
                 { id: 'internal', label: '内购商品' },
                 { id: 'points', label: '积分兑换' },
-              ].map(f => (
+              ].filter(f => f.id !== 'internal' || (userInfo?.isEmployee && userInfo?.employeeAuth?.status === 'approved')).map(f => (
                 <Badge 
                   key={f.id}
                   onClick={() => {
