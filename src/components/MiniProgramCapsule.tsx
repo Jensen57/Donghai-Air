@@ -89,15 +89,16 @@ export default function MiniProgramCapsule({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="absolute inset-0 z-[10000] bg-black/40 flex items-end sm:items-center justify-center p-4 sm:p-0"
+            className="absolute inset-0 z-[10000] bg-black/40 flex items-end justify-center"
             onClick={() => setShowMenu(false)}
           >
             <motion.div
               initial={{ y: '100%' }}
               animate={{ y: 0 }}
               exit={{ y: '100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
               onClick={(e) => e.stopPropagation()}
-              className="bg-[#f5f5f5] w-full rounded-t-3xl sm:rounded-3xl sm:max-w-md p-4 sm:p-6 pb-safe"
+              className="bg-[#f5f5f5] w-full rounded-t-[24px] p-4 pt-6 pb-10"
             >
               <div className="flex justify-between items-center mb-6 px-2">
                 <div className="flex items-center gap-2">

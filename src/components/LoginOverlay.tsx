@@ -65,7 +65,7 @@ export default function LoginOverlay({ isOpen, onClose, startStep = 'auth' }: Lo
   };
 
   const skipPhone = () => {
-    setStep('success');
+    handleClose();
   };
 
   return (
