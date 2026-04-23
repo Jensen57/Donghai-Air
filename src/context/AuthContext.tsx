@@ -459,114 +459,130 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           createdAt: new Date().toLocaleString(),
           isInternal
         };
-        const orders = [newOrder, ...userInfo.orders];
         
-        // Track internal purchases
-        const internalPurchases = { ...userInfo.internalPurchases };
-        order.items.forEach(item => {
-          if (item.productId.startsWith('emp-')) {
-            internalPurchases[item.productId] = (internalPurchases[item.productId] || 0) + item.quantity;
-          }
-        });
-
-        const updated = { 
-          ...userInfo, 
-          orders,
-          internalPurchases,
-          orderCounts: {
-            ...userInfo.orderCounts,
-            pendingPayment: userInfo.orderCounts.pendingPayment + 1
-          }
-        };
-        setUserInfo(updated);
-        localStorage.setItem('donghai_user', JSON.stringify(updated));
-
-        // Add message and notification
-        addMessage({
+        const newMessage: Message = {
           title: '下单成功',
           content: `您的订单 ${orderId} 已提交成功，请尽快支付。`,
           type: 'order',
-          businessId: orderId
-        });
-        showNotification('下单成功', `订单号: ${orderId}`);
+          businessId: orderId,
+          id: 'MSG' + Date.now().toString().slice(-8),
+          time: new Date().toLocaleString(),
+          isRead: false
+        };
 
+        setUserInfo(prev => {
+          if (!prev) return null;
+          
+          const internalPurchases = { ...prev.internalPurchases };
+          order.items.forEach(item => {
+            if (item.productId.startsWith('emp-')) {
+              internalPurchases[item.productId] = (internalPurchases[item.productId] || 0) + item.quantity;
+            }
+          });
+
+          const updated = {
+            ...prev,
+            orders: [newOrder, ...prev.orders],
+            internalPurchases,
+            orderCounts: {
+              ...prev.orderCounts,
+              pendingPayment: prev.orderCounts.pendingPayment + 1
+            },
+            messages: [newMessage, ...prev.messages],
+            unreadMessagesCount: prev.unreadMessagesCount + 1
+          };
+          localStorage.setItem('donghai_user', JSON.stringify(updated));
+          return updated;
+        });
+
+        showNotification('下单成功', `订单号: ${orderId}`);
         resolve(orderId);
       }, 500);
     });
   };
 
   const updateOrderStatus = (orderId: string, status: OrderStatus) => {
-    if (!userInfo) return;
-    
-    let oldStatus: OrderStatus | undefined;
-    let orderPoints = 0;
-    const orders = userInfo.orders.map(o => {
-      if (o.id === orderId) {
-        oldStatus = o.status;
-        orderPoints = o.totalPoints || 0;
-        return { 
-          ...o, 
-          status, 
-          paymentTime: status === 'pendingShipment' ? new Date().toLocaleString() : o.paymentTime,
-          logistics: (status === 'completed' && o.logistics) ? {
-            ...o.logistics,
-            trajectory: [
-              { time: new Date().toLocaleString(), location: '收货地址', status: '包裹已由本人签收，感谢使用东海航空' },
-              ...(o.logistics.trajectory || [])
-            ]
-          } : o.logistics
+    setUserInfo(prev => {
+      if (!prev) return null;
+      
+      let oldStatus: OrderStatus | undefined;
+      let orderPoints = 0;
+      const orders = prev.orders.map(o => {
+        if (o.id === orderId) {
+          oldStatus = o.status;
+          orderPoints = o.totalPoints || 0;
+          return { 
+            ...o, 
+            status, 
+            paymentTime: status === 'pendingShipment' ? new Date().toLocaleString() : o.paymentTime,
+            logistics: (status === 'completed' && o.logistics) ? {
+              ...o.logistics,
+              trajectory: [
+                { time: new Date().toLocaleString(), location: '收货地址', status: '包裹已由本人签收，感谢使用东海航空' },
+                ...(o.logistics.trajectory || [])
+              ]
+            } : o.logistics
+          };
+        }
+        return o;
+      });
+
+      if (!oldStatus) return prev;
+
+      const counts = { ...prev.orderCounts };
+      if (oldStatus in counts) (counts as any)[oldStatus] = Math.max(0, (counts as any)[oldStatus] - 1);
+      if (status in counts) (counts as any)[status]++;
+
+      let updated = { ...prev, orders, orderCounts: counts };
+
+      // If payment successful and there are points to deduct
+      if (status === 'pendingShipment' && oldStatus === 'pendingPayment' && orderPoints > 0) {
+        const newBalance = prev.points - orderPoints;
+        const record: PointsRecord = {
+          id: 'PR' + Date.now().toString().slice(-8),
+          amount: -orderPoints,
+          type: 'consumption',
+          description: `商品兑换扣除积分 (订单号: ${orderId})`,
+          balance: newBalance,
+          createdAt: new Date().toLocaleString()
+        };
+        
+        updated = {
+          ...updated,
+          points: newBalance,
+          pointsRecords: [record, ...(prev.pointsRecords || [])]
         };
       }
-      return o;
+
+      // Handle messages within the same update to avoid race conditions
+      if (status === 'pendingShipment' || status === 'completed') {
+        const newMessage: Message = {
+          id: 'MSG' + Date.now().toString().slice(-8),
+          time: new Date().toLocaleString(),
+          isRead: false,
+          title: status === 'pendingShipment' ? '支付成功' : '订单已完成',
+          content: status === 'pendingShipment' 
+            ? `您的订单 ${orderId} 已支付成功，我们将尽快为您发货。`
+            : `您的订单 ${orderId} 已确认收货，感谢您的支持。`,
+          type: 'order',
+          businessId: orderId
+        };
+        
+        updated = {
+          ...updated,
+          messages: [newMessage, ...updated.messages],
+          unreadMessagesCount: updated.unreadMessagesCount + 1
+        };
+        
+        showNotification(
+          status === 'pendingShipment' ? '支付成功' : '订单已完成',
+          status === 'pendingShipment' ? `订单 ${orderId} 已进入待发货状态` : `感谢您的购物！`
+        );
+      }
+
+      localStorage.setItem('donghai_user', JSON.stringify(updated));
+      return updated;
     });
-
-    if (!oldStatus) return;
-
-    const counts = { ...userInfo.orderCounts };
-    if (oldStatus in counts) (counts as any)[oldStatus] = Math.max(0, (counts as any)[oldStatus] - 1);
-    if (status in counts) (counts as any)[status]++;
-
-    let updated = { ...userInfo, orders, orderCounts: counts };
-
-    // If payment successful and there are points to deduct
-    if (status === 'pendingShipment' && oldStatus === 'pendingPayment' && orderPoints > 0) {
-      const newBalance = userInfo.points - orderPoints;
-      const record: PointsRecord = {
-        id: 'PR' + Date.now().toString().slice(-8),
-        amount: -orderPoints,
-        type: 'consumption',
-        description: `商品兑换扣除积分 (订单号: ${orderId})`,
-        balance: newBalance,
-        createdAt: new Date().toLocaleString()
-      };
-      
-      updated = {
-        ...updated,
-        points: newBalance,
-        pointsRecords: [record, ...(userInfo.pointsRecords || [])]
-      };
-    }
-
-    setUserInfo(updated);
-    localStorage.setItem('donghai_user', JSON.stringify(updated));
-
-    if (status === 'pendingShipment') {
-      addMessage({
-        title: '支付成功',
-        content: `您的订单 ${orderId} 已支付成功，我们将尽快为您发货。`,
-        type: 'order',
-        businessId: orderId
-      });
-      showNotification('支付成功', `订单 ${orderId} 已进入待发货状态`);
-    } else if (status === 'completed') {
-      addMessage({
-        title: '订单已完成',
-        content: `您的订单 ${orderId} 已确认收货，感谢您的支持。`,
-        type: 'order',
-        businessId: orderId
-      });
-      showNotification('订单已完成', `感谢您的购物！`);
-    }
   };
 
   const applyAfterSales = async (record: Omit<AfterSalesRecord, 'id' | 'status' | 'createdAt'>) => {
@@ -574,45 +590,55 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return new Promise<string>((resolve) => {
       setTimeout(() => {
         const id = 'AS' + Date.now().toString().slice(-8);
-        const order = userInfo.orders.find(o => o.id === record.orderId);
-        const isEmployeeChannel = order?.isInternal || record.productId.startsWith('emp-');
         
-        const newRecord: AfterSalesRecord = {
-          ...record,
-          id,
-          status: 'pendingAudit',
-          createdAt: new Date().toLocaleString(),
-          isEmployeeChannel
-        };
-        
-        // Update order status to afterSales
-        const orders = userInfo.orders.map(o => {
-          if (o.id === record.orderId) {
-            return { ...o, status: 'afterSales' as OrderStatus };
-          }
-          return o;
+        setUserInfo(prev => {
+          if (!prev) return null;
+          
+          const order = prev.orders.find(o => o.id === record.orderId);
+          const isEmployeeChannel = order?.isInternal || record.productId.startsWith('emp-');
+          
+          const newRecord: AfterSalesRecord = {
+            ...record,
+            id,
+            status: 'pendingAudit',
+            createdAt: new Date().toLocaleString(),
+            isEmployeeChannel
+          };
+          
+          const orders = prev.orders.map(o => {
+            if (o.id === record.orderId) {
+              return { ...o, status: 'afterSales' as OrderStatus };
+            }
+            return o;
+          });
+
+          const newMessage: Message = {
+            id: 'MSG' + Date.now().toString().slice(-8),
+            time: new Date().toLocaleString(),
+            isRead: false,
+            title: '售后申请已提交',
+            content: `您的售后申请 ${id} 已提交，请耐心等待审核。`,
+            type: 'order',
+            businessId: record.orderId
+          };
+
+          const updated = { 
+            ...prev, 
+            orders,
+            afterSales: [newRecord, ...(prev.afterSales || [])],
+            orderCounts: {
+              ...prev.orderCounts,
+              afterSales: (prev.orderCounts.afterSales || 0) + 1
+            },
+            messages: [newMessage, ...prev.messages],
+            unreadMessagesCount: prev.unreadMessagesCount + 1
+          };
+          
+          localStorage.setItem('donghai_user', JSON.stringify(updated));
+          return updated;
         });
 
-        const updated = { 
-          ...userInfo, 
-          orders,
-          afterSales: [newRecord, ...(userInfo.afterSales || [])],
-          orderCounts: {
-            ...userInfo.orderCounts,
-            afterSales: (userInfo.orderCounts.afterSales || 0) + 1
-          }
-        };
-        setUserInfo(updated);
-        localStorage.setItem('donghai_user', JSON.stringify(updated));
-
-        addMessage({
-          title: '售后申请已提交',
-          content: `您的售后申请 ${id} 已提交，请耐心等待审核。`,
-          type: 'order',
-          businessId: record.orderId
-        });
         showNotification('售后申请已提交', `申请单号: ${id}`);
-
         resolve(id);
       }, 800);
     });

@@ -25,9 +25,10 @@ interface CheckoutProps {
   items: any[];
   onBack: () => void;
   onSuccess: (orderId: string) => void;
+  onShowLogin: (step: 'auth' | 'phone') => void;
 }
 
-export default function Checkout({ items, onBack, onSuccess }: CheckoutProps) {
+export default function Checkout({ items, onBack, onSuccess, onShowLogin }: CheckoutProps) {
   const { userInfo, clearCart, addOrder, updateOrderStatus } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPayment, setShowPayment] = useState(false);
@@ -35,24 +36,11 @@ export default function Checkout({ items, onBack, onSuccess }: CheckoutProps) {
   const [paymentMethod, setPaymentMethod] = useState('微信支付');
   const [errorMessage, setErrorMessage] = useState('');
   const [orderId, setOrderId] = useState('');
+  const lastOrderId = React.useRef<string>('');
   const [showAddressManagement, setShowAddressManagement] = useState(false);
-  const [showPhoneBinding, setShowPhoneBinding] = useState(false);
+  const [showPhoneBindingPrompt, setShowPhoneBindingPrompt] = useState(false);
   const [showIdAuthNeeded, setShowIdAuthNeeded] = useState(false);
-  const [newPhone, setNewPhone] = useState('');
   const { updateUser } = useAuth();
-
-  const handleBindPhone = async () => {
-    if (!newPhone || newPhone.length !== 11) {
-      alert('请输入正确的11位手机号');
-      return;
-    }
-    await updateUser({ phone: newPhone });
-    setShowPhoneBinding(false);
-    // Smooth transition natively: the timeout prevents the modal exit animation from lagging behind the newly opened sheet
-    setTimeout(() => {
-      handleSubmit();
-    }, 300);
-  };
 
   const defaultAddress = userInfo?.addresses.find(a => a.isDefault) || userInfo?.addresses[0];
   const totalPrice = items.reduce((sum, item) => sum + (item.isPointsOnly ? 0 : item.price * item.quantity), 0);
@@ -60,7 +48,7 @@ export default function Checkout({ items, onBack, onSuccess }: CheckoutProps) {
 
   const isPurePoints = totalPoints > 0 && totalPrice === 0;
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (phoneOverride?: string) => {
     if (orderId) {
       setShowPayment(true);
       return;
@@ -83,8 +71,9 @@ export default function Checkout({ items, onBack, onSuccess }: CheckoutProps) {
     }
 
     // Phone binding check
-    if (!userInfo?.phone) {
-      setShowPhoneBinding(true);
+    const currentPhone = phoneOverride || userInfo?.phone;
+    if (!currentPhone) {
+      setShowPhoneBindingPrompt(true);
       return;
     }
 
@@ -117,6 +106,7 @@ export default function Checkout({ items, onBack, onSuccess }: CheckoutProps) {
         paymentMethod: isPurePoints ? '积分兑换' : paymentMethod
       });
       setOrderId(id);
+      lastOrderId.current = id;
       setIsSubmitting(false);
       
       if (isPurePoints) {
@@ -132,6 +122,13 @@ export default function Checkout({ items, onBack, onSuccess }: CheckoutProps) {
   };
 
   const handlePay = async () => {
+    const currentOrderId = orderId || lastOrderId.current;
+    if (!currentOrderId) {
+      setPaymentStatus('failed');
+      setErrorMessage('订单状态异常，请返回重试');
+      return;
+    }
+
     // Balance checkout validation
     if (!isPurePoints && paymentMethod === '余额支付') {
       const balance = userInfo?.balance || 0;
@@ -155,19 +152,14 @@ export default function Checkout({ items, onBack, onSuccess }: CheckoutProps) {
       }
 
       // Simulate payment process
-      await new Promise((resolve, reject) => {
+      await new Promise((resolve) => {
         setTimeout(() => {
-          // 10% chance of failure
-          if (Math.random() > 0.1) {
-            resolve(true);
-          } else {
-            reject(new Error('支付失败，请检查余额或网络，重新支付'));
-          }
-        }, 2000);
+          resolve(true);
+        }, 1500);
       });
 
       // Update order status
-      updateOrderStatus(orderId, 'pendingShipment');
+      updateOrderStatus(currentOrderId, 'pendingShipment');
       
       // Update global stock and sales (Mutation of imported constants)
       items.forEach(item => {
@@ -456,40 +448,36 @@ export default function Checkout({ items, onBack, onSuccess }: CheckoutProps) {
         )}
       </AnimatePresence>
 
-      {/* Phone Binding Modal */}
+      {/* Phone Binding Prompt Modal */}
       <AnimatePresence>
-        {showPhoneBinding && (
-          <div className="fixed inset-0 z-[100] bg-black/60 flex items-end">
+        {showPhoneBindingPrompt && (
+          <div className="fixed inset-0 z-[200] flex items-center justify-center px-6">
             <motion.div 
-              initial={{ y: '100%' }}
-              animate={{ y: 0 }}
-              exit={{ y: '100%' }}
-              className="bg-white w-full rounded-t-[32px] p-6 pb-12"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowPhoneBindingPrompt(false)}
+              className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+            />
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="relative bg-white rounded-[32px] p-6 w-full max-w-xs text-center shadow-2xl"
             >
-              <div className="flex items-center justify-between mb-8">
-                <X className="w-6 h-6 text-gray-300" onClick={() => setShowPhoneBinding(false)} />
-                <h3 className="text-lg font-bold">绑定手机号</h3>
-                <div className="w-6" />
+              <div className="w-16 h-16 bg-donghai/5 rounded-full flex items-center justify-center mx-auto mb-4">
+                <ShieldCheck className="w-8 h-8 text-donghai" />
               </div>
-
-              <div className="text-center mb-8">
-                <p className="text-sm text-gray-500 mb-6">为了方便联系和发货，请输入您的手机号完成绑定。</p>
-                <input 
-                  type="tel"
-                  maxLength={11}
-                  placeholder="请输入11位手机号"
-                  value={newPhone}
-                  onChange={(e) => setNewPhone(e.target.value.replace(/\D/g, ''))}
-                  className="w-full bg-gray-50 border-none px-4 py-4 rounded-2xl text-lg font-medium text-center focus:ring-2 focus:ring-donghai"
-                />
-              </div>
-
+              <h3 className="text-lg font-bold text-gray-800 mb-2">提示</h3>
+              <p className="text-xs text-gray-500 mb-6 leading-relaxed">为了账户安全和联系顺畅，购买前请先完成手机号绑定。</p>
               <Button 
-                onClick={handleBindPhone}
-                disabled={newPhone.length !== 11}
-                className="w-full bg-donghai hover:bg-donghai-light text-white rounded-2xl h-14 font-bold text-lg shadow-xl"
+                className="w-full bg-donghai text-white rounded-full h-11 font-bold"
+                onClick={() => {
+                  setShowPhoneBindingPrompt(false);
+                  onShowLogin('phone');
+                }}
               >
-                授权绑定
+                我知道了
               </Button>
             </motion.div>
           </div>

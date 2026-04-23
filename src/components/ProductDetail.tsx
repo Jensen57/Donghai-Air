@@ -53,7 +53,7 @@ interface ProductDetailProps {
   product: Product;
   onBack: () => void;
   onCheckout: (items: any[]) => void;
-  onShowLogin: () => void;
+  onShowLogin: (step?: 'auth' | 'phone') => void;
   onTabChange: (tab: any) => void;
   onShowCustomerService: () => void;
 }
@@ -82,6 +82,7 @@ export default function ProductDetail({
   const [showToast, setShowToast] = useState(false);
   const [showFavoriteToast, setShowFavoriteToast] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [errorType, setErrorType] = useState<'auth' | 'phone' | 'idVerified' | null>(null);
 
   const isFavorite = userInfo?.favorites?.includes(product.id);
 
@@ -129,19 +130,27 @@ export default function ProductDetail({
   }, [product]);
 
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [showIdAuthNeeded, setShowIdAuthNeeded] = useState(false);
+
+  const checkAuthStatus = () => {
+    if (!isLoggedIn) {
+      onShowLogin('auth');
+      return false;
+    }
+    if (!userInfo?.phone) {
+      setErrorType('phone');
+      setErrorMsg('为了您的账户安全，请先绑定手机号');
+      return false;
+    }
+    if (!userInfo?.isIdVerified) {
+      setErrorType('idVerified');
+      setErrorMsg('根据相关法规，购买及相关互动需要完成实名认证');
+      return false;
+    }
+    return true;
+  };
 
   const handleBuyNow = () => {
-    if (!isLoggedIn) {
-      onShowLogin();
-      return;
-    }
-
-    // Real-name Verification check
-    if (!userInfo?.isIdVerified) {
-      setShowIdAuthNeeded(true);
-      return;
-    }
+    if (!checkAuthStatus()) return;
 
     // Employee Auth Check for internal products
     if (product.id.startsWith('emp-')) {
@@ -185,10 +194,7 @@ export default function ProductDetail({
   };
 
   const handleFavorite = async () => {
-    if (!isLoggedIn) {
-      onShowLogin();
-      return;
-    }
+    if (!checkAuthStatus()) return;
     setIsFavoriting(true);
     try {
       await toggleFavorite(product.id);
@@ -204,16 +210,7 @@ export default function ProductDetail({
   };
 
   const handleAddToCart = async () => {
-    if (!isLoggedIn) {
-      onShowLogin();
-      return;
-    }
-
-    // Real-name Verification check
-    if (!userInfo?.isIdVerified) {
-      setShowIdAuthNeeded(true);
-      return;
-    }
+    if (!checkAuthStatus()) return;
 
     // Employee Auth Check for internal products
     if (product.id.startsWith('emp-')) {
@@ -269,6 +266,7 @@ export default function ProductDetail({
   };
 
   const handleShare = () => {
+    if (!checkAuthStatus()) return;
     setShowShare(true);
   };
 
@@ -650,59 +648,18 @@ export default function ProductDetail({
               <p className="text-xs text-gray-500 mb-6 leading-relaxed">{errorMsg}</p>
               <Button 
                 className="w-full bg-donghai text-white rounded-full h-11 font-bold"
-                onClick={() => setErrorMsg(null)}
+                onClick={() => {
+                  setErrorMsg(null);
+                  if (errorType === 'phone') {
+                    onShowLogin('phone');
+                  } else if (errorType === 'auth') {
+                    onShowLogin('auth');
+                  }
+                  setErrorType(null);
+                }}
               >
                 我知道了
               </Button>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
-
-      {/* Real-name Auth Required Modal */}
-      <AnimatePresence>
-        {showIdAuthNeeded && (
-          <div className="absolute inset-0 z-[200] flex items-center justify-center px-6">
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setShowIdAuthNeeded(false)}
-              className="absolute inset-0 bg-black/40 backdrop-blur-sm"
-            />
-            <motion.div 
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              className="relative bg-white rounded-[32px] p-6 w-full max-w-xs text-center shadow-2xl"
-            >
-              <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4">
-                <UserCircle className="w-8 h-8 text-blue-500" />
-              </div>
-              <h3 className="text-lg font-bold text-gray-800 mb-2">提示</h3>
-              <p className="text-xs text-gray-500 mb-6 leading-relaxed">根据相关规定，您需要先完成实名认证后方可进行交易。</p>
-              <div className="flex gap-3">
-                <Button 
-                  variant="outline"
-                  className="flex-1 rounded-full h-11 font-bold border-gray-200 text-gray-600"
-                  onClick={() => {
-                    setShowIdAuthNeeded(false);
-                    setErrorMsg('请去设置里进行认证');
-                  }}
-                >
-                  稍后
-                </Button>
-                <Button 
-                  className="flex-1 bg-donghai text-white rounded-full h-11 font-bold"
-                  onClick={() => {
-                    setShowIdAuthNeeded(false);
-                    const event = new CustomEvent('navigate-id-auth');
-                    window.dispatchEvent(event);
-                  }}
-                >
-                  去认证
-                </Button>
-              </div>
             </motion.div>
           </div>
         )}

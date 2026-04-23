@@ -18,8 +18,8 @@ import { Card } from '@/components/ui/card';
 import { useAuth } from '../context/AuthContext';
 import AddressManagement from './AddressManagement';
 
-export default function Cart({ onBack, onCheckout }: { onBack: () => void, onCheckout: (selectedItems: any[]) => void }) {
-  const { userInfo, updateCartQuantity, removeFromCart, clearCart } = useAuth();
+export default function Cart({ onBack, onCheckout, onShowLogin }: { onBack: () => void, onCheckout: (selectedItems: any[]) => void, onShowLogin: () => void }) {
+  const { isLoggedIn, userInfo, updateCartQuantity, removeFromCart, clearCart } = useAuth();
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState<'all' | 'normal' | 'points' | 'internal'>('all');
   const [showAddressManagement, setShowAddressManagement] = useState(false);
@@ -67,19 +67,17 @@ export default function Cart({ onBack, onCheckout }: { onBack: () => void, onChe
     .filter(item => item.isPointsOnly)
     .reduce((sum, item) => sum + (item.points || 0) * item.quantity, 0);
 
-  const [showIdAuthNeeded, setShowIdAuthNeeded] = useState(false);
-
   const handleCheckout = () => {
+    if (!isLoggedIn) {
+      onShowLogin();
+      return;
+    }
+    
     if (isMixedSelection) {
       alert('不同类型的商品（普通、积分、内购）不能同时结算，请分别选择');
       return;
     }
     
-    if (!userInfo?.isIdVerified) {
-      setShowIdAuthNeeded(true);
-      return;
-    }
-
     onCheckout(selectedItems);
   };
 
@@ -341,54 +339,6 @@ export default function Cart({ onBack, onCheckout }: { onBack: () => void, onChe
                   onClick={confirmDelete}
                 >
                   确定删除
-                </Button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
-
-      {/* Real-name Auth Required Modal */}
-      <AnimatePresence>
-        {showIdAuthNeeded && (
-          <div className="fixed inset-0 z-[200] flex items-center justify-center px-6">
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setShowIdAuthNeeded(false)}
-              className="absolute inset-0 bg-black/40 backdrop-blur-sm"
-            />
-            <motion.div 
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              className="relative bg-white rounded-[32px] p-6 w-full max-w-xs text-center shadow-2xl"
-            >
-              <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4">
-                <UserCircle className="w-8 h-8 text-blue-500" />
-              </div>
-              <h3 className="text-lg font-bold text-gray-800 mb-2">提示</h3>
-              <p className="text-xs text-gray-500 mb-6 leading-relaxed">根据相关规定，您需要先完成实名认证后方可进行交易。</p>
-              <div className="flex gap-3">
-                <Button 
-                  variant="outline"
-                  className="flex-1 rounded-full h-11 font-bold border-gray-100 text-gray-600"
-                  onClick={() => {
-                    setShowIdAuthNeeded(false);
-                  }}
-                >
-                  稍后
-                </Button>
-                <Button 
-                  className="flex-1 bg-donghai text-white rounded-full h-11 font-bold"
-                  onClick={() => {
-                    setShowIdAuthNeeded(false);
-                    const event = new CustomEvent('navigate-id-auth');
-                    window.dispatchEvent(event);
-                  }}
-                >
-                  去认证
                 </Button>
               </div>
             </motion.div>

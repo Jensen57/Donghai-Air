@@ -7,12 +7,20 @@ import { X, ShieldCheck, Phone, AlertCircle } from 'lucide-react';
 interface LoginOverlayProps {
   isOpen?: boolean;
   onClose?: () => void;
+  startStep?: 'auth' | 'phone';
 }
 
-export default function LoginOverlay({ isOpen, onClose }: LoginOverlayProps) {
+export default function LoginOverlay({ isOpen, onClose, startStep = 'auth' }: LoginOverlayProps) {
   const { isLoggedIn, login, updatePhone } = useAuth();
   const [showAuth, setShowAuth] = useState(true);
-  const [step, setStep] = useState<'auth' | 'phone' | 'success'>('auth');
+  const [step, setStep] = useState<'auth' | 'phone' | 'success'>(startStep);
+
+  React.useEffect(() => {
+    if (isOpen) {
+      setStep(startStep);
+      setError(null);
+    }
+  }, [isOpen, startStep]);
   const [error, setError] = useState<string | null>(null);
   const [phoneNumber, setPhoneNumber] = useState('');
 
@@ -67,17 +75,20 @@ export default function LoginOverlay({ isOpen, onClose }: LoginOverlayProps) {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="absolute inset-0 z-[100] bg-black/60 flex items-end justify-center"
+          className="absolute inset-0 z-[300] bg-black/60 flex items-end justify-center"
         >
           <motion.div 
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-            className="bg-white w-full max-w-md rounded-t-3xl p-6 pb-12"
+            className="bg-white w-full max-w-md rounded-t-[32px] p-6 pb-20 shadow-2xl"
           >
             {step === 'auth' && (
               <div className="flex flex-col items-center text-center">
+                <div className="w-full flex justify-end mb-2">
+                  <X className="w-6 h-6 text-gray-300 cursor-pointer" onClick={handleClose} />
+                </div>
                 <div className="w-16 h-16 bg-donghai/10 rounded-2xl flex items-center justify-center mb-4">
                   <img src="https://www.dzair.com/favicon.ico" alt="logo" className="w-10 h-10" />
                 </div>
@@ -101,7 +112,7 @@ export default function LoginOverlay({ isOpen, onClose }: LoginOverlayProps) {
                   <Button 
                     variant="ghost" 
                     className="w-full text-gray-400 h-12"
-                    onClick={() => setError('授权失败，请重新尝试')}
+                    onClick={handleClose}
                   >
                     拒绝
                   </Button>
@@ -111,36 +122,44 @@ export default function LoginOverlay({ isOpen, onClose }: LoginOverlayProps) {
 
             {step === 'phone' && (
               <div className="flex flex-col">
-                <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-lg font-bold">绑定手机号</h2>
-                  <Button variant="ghost" size="sm" onClick={skipPhone} className="text-gray-400">跳过</Button>
+                <div className="flex items-center justify-between mb-4">
+                   <h2 className="text-xl font-bold">绑定手机号</h2>
+                   <div className="flex items-center gap-2">
+                     <Button variant="ghost" size="sm" onClick={skipPhone} className="text-gray-400 font-medium">跳过</Button>
+                     <X className="w-5 h-5 text-gray-300 cursor-pointer" onClick={handleClose} />
+                   </div>
                 </div>
-                <p className="text-sm text-gray-500 mb-6">绑定手机号用于账户安全与赔付验证</p>
+                <p className="text-sm text-gray-500 mb-8">绑定手机号用于账户安全与赔付验证</p>
                 
-                <div className="relative mb-6">
+                <div className="relative mb-2">
                   <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                   <input 
                     type="tel" 
                     placeholder="请输入手机号" 
                     value={phoneNumber}
-                    onChange={(e) => setPhoneNumber(e.target.value.replace(/\D/g, '').slice(0, 11))}
-                    className="w-full bg-gray-50 border-none rounded-xl py-4 pl-12 pr-4 text-sm focus:ring-2 focus:ring-donghai outline-none"
+                    onChange={(e) => {
+                      setPhoneNumber(e.target.value.replace(/\D/g, '').slice(0, 11));
+                      if (error) setError(null);
+                    }}
+                    className="w-full bg-gray-50 border-none rounded-2xl py-5 pl-12 pr-4 text-base focus:ring-2 focus:ring-donghai outline-none transition-all placeholder:text-gray-300"
                   />
                 </div>
 
                 {error && (
-                  <div className="flex items-center gap-2 text-red-500 text-xs mb-4">
+                  <div className="flex items-center gap-2 text-red-500 text-xs mt-2 mb-6 ml-1 animate-in fade-in slide-in-from-top-1">
                     <AlertCircle className="w-4 h-4" />
                     {error}
                   </div>
                 )}
 
-                <Button 
-                  onClick={handleBindPhone}
-                  className="w-full bg-donghai text-white h-12 rounded-xl font-bold"
-                >
-                  立即绑定
-                </Button>
+                <div className="mt-4">
+                  <Button 
+                    onClick={handleBindPhone}
+                    className="w-full bg-donghai text-white h-14 rounded-2xl font-bold text-lg shadow-lg shadow-donghai/10 active:scale-[0.98] transition-transform"
+                  >
+                    立即绑定
+                  </Button>
+                </div>
               </div>
             )}
 

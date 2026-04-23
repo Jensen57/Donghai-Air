@@ -96,7 +96,13 @@ function AppContent() {
   const [showPointsCenter, setShowPointsCenter] = useState(false);
   const [showPointsMall, setShowPointsMall] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
+  const [loginStep, setLoginStep] = useState<'auth' | 'phone'>('auth');
   const [showCustomerService, setShowCustomerService] = useState(false);
+
+  const triggerLogin = (step: 'auth' | 'phone' = 'auth') => {
+    setLoginStep(step);
+    setShowLogin(true);
+  };
   const [showMessages, setShowMessages] = useState(false);
   const [showHelpCenter, setShowHelpCenter] = useState(false);
   const [helpCenterQuery, setHelpCenterQuery] = useState('');
@@ -110,6 +116,7 @@ function AppContent() {
   React.useEffect(() => {
     const handleNavigateIdAuth = () => {
        // Switch to profile tab and then open settings->idAuth
+       setShowCheckout(false);
        setActiveTab('profile');
        setInitialSettingSubPage('idAuth');
     };
@@ -205,13 +212,13 @@ function AppContent() {
             onShowEmployeeMall={() => setShowEmployeeMall(true)}
             onShowPointsCenter={() => setShowPointsCenter(true)}
             onShowPointsMall={() => setShowPointsMall(true)}
-            onShowLogin={() => setShowLogin(true)}
+            onShowLogin={triggerLogin}
             onTabChange={handleTabChange}
             onShowCustomerService={() => setShowCustomerService(true)}
           />
         );
       case 'cart':
-        return <Cart onBack={() => handleTabChange('mall')} onCheckout={handleCheckout} />;
+        return <Cart onBack={() => handleTabChange('mall')} onCheckout={handleCheckout} onShowLogin={triggerLogin} />;
       case 'orders':
         return (
           <Orders 
@@ -236,7 +243,7 @@ function AppContent() {
             onShowInternalOrders={() => setShowInternalOrders(true)}
             onShowPointsCenter={() => setShowPointsCenter(true)}
             onShowPointsMall={() => setShowPointsMall(true)}
-            onShowLogin={() => setShowLogin(true)}
+            onShowLogin={triggerLogin}
             onShowCustomerService={() => setShowCustomerService(true)}
             initialSettingSubPage={initialSettingSubPage}
             clearInitialSettingSubPage={clearInitialSettingSubPage}
@@ -306,6 +313,7 @@ function AppContent() {
                 items={checkoutItems} 
                 onBack={() => setShowCheckout(false)} 
                 onSuccess={handleCheckoutSuccess} 
+                onShowLogin={triggerLogin}
               />
             ) : showHelpCenter ? (
               <HelpCenter onBack={() => {
@@ -338,7 +346,7 @@ function AppContent() {
               <EmployeeMall 
                 onBack={() => setShowEmployeeMall(false)} 
                 onCheckout={handleCheckout}
-                onShowLogin={() => setShowLogin(true)}
+                onShowLogin={triggerLogin}
                 onTabChange={handleTabChange}
                 onShowCustomerService={() => setShowCustomerService(true)}
               />
@@ -354,7 +362,7 @@ function AppContent() {
               <PointsMall 
                 onBack={() => setShowPointsMall(false)} 
                 onCheckout={handleCheckout}
-                onShowLogin={() => setShowLogin(true)}
+                onShowLogin={triggerLogin}
                 onTabChange={handleTabChange}
                 onShowCustomerService={() => setShowCustomerService(true)}
               />
@@ -369,10 +377,10 @@ function AppContent() {
                 <div className="flex-1 overflow-y-auto no-scrollbar pb-20">
                   {renderMainContent()}
                 </div>
-                <BottomNav activeTab={activeTab} setActiveTab={handleTabChange} onShowLogin={() => setShowLogin(true)} />
+                <BottomNav activeTab={activeTab} setActiveTab={handleTabChange} onShowLogin={triggerLogin} />
               </>
             )}
-            <LoginOverlay isOpen={showLogin} onClose={() => setShowLogin(false)} />
+            <LoginOverlay isOpen={showLogin} onClose={() => setShowLogin(false)} startStep={loginStep} />
             <CustomerService 
               isOpen={showCustomerService} 
               onClose={() => setShowCustomerService(false)} 

@@ -267,10 +267,6 @@ export default function Mall({ onCheckout, onShowCompensation, onShowEmployeeAut
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.3 }}
             onClick={() => {
-              if (!userInfo) {
-                onShowLogin();
-                return;
-              }
               setSelectedProduct(product);
             }}
           >

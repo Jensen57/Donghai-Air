@@ -21,21 +21,39 @@ interface AddressManagementProps {
 }
 
 export default function AddressManagement({ onBack }: AddressManagementProps) {
-  const { userInfo, addAddress, updateAddress, deleteAddress } = useAuth();
+  const { userInfo, addAddress, updateAddress, deleteAddress, showNotification } = useAuth();
   const [view, setView] = useState<'list' | 'edit'>('list');
   const [activeTab, setActiveTab] = useState('推荐');
   const [editingAddress, setEditingAddress] = useState<Partial<Address> | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [showProvinceList, setShowProvinceList] = useState(false);
 
   const tabs = ['推荐'];
 
+  const PROVINCES = [
+    '北京市', '天津市', '河北省', '山西省', '内蒙古自治区', '辽宁省', '吉林省', '黑龙江省', 
+    '上海市', '江苏省', '浙江省', '安徽省', '福建省', '江西省', '山东省', '河南省', 
+    '湖北省', '湖南省', '广东省', '广西壮族自治区', '海南省', '重庆市', '四川省', 
+    '贵州省', '云南省', '西藏自治区', '陕西省', '甘肃省', '青海省', '宁夏回族自治区', 
+    '新疆维吾尔自治区', '香港特别行政区', '澳门特别行政区', '台湾省'
+  ];
+
   const handleSave = () => {
-    if (!editingAddress?.receiver || !editingAddress?.phone || !editingAddress?.detail) {
+    const errors: Record<string, string> = {};
+    if (!editingAddress?.receiver) errors.receiver = '请输入收货人姓名';
+    if (!editingAddress?.phone) errors.phone = '请输入手机号码';
+    else if (editingAddress.phone.length !== 11) errors.phone = '请输入正确的11位手机号';
+    if (!editingAddress?.province) errors.province = '请选择省份';
+    if (!editingAddress?.city) errors.city = '请输入城市';
+    if (!editingAddress?.district) errors.district = '请输入地区';
+    if (!editingAddress?.detail) errors.detail = '请输入详细地址';
+
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors);
       return;
     }
-    if (editingAddress.phone.length !== 11) {
-      return;
-    }
+    setFieldErrors({});
 
     if (editingAddress.id) {
       updateAddress(editingAddress.id, editingAddress);
@@ -68,10 +86,14 @@ export default function AddressManagement({ onBack }: AddressManagementProps) {
                 <input 
                   type="text" 
                   value={editingAddress?.receiver || ''}
-                  onChange={(e) => setEditingAddress({ ...editingAddress, receiver: e.target.value })}
+                  onChange={(e) => {
+                    setEditingAddress({ ...editingAddress, receiver: e.target.value });
+                    if (fieldErrors.receiver) setFieldErrors({ ...fieldErrors, receiver: '' });
+                  }}
                   placeholder="请输入收货人姓名"
-                  className="w-full bg-gray-50 rounded-xl h-11 pl-10 pr-4 text-xs focus:outline-none focus:ring-1 focus:ring-donghai/30"
+                  className={`w-full bg-gray-50 rounded-xl h-11 pl-10 pr-4 text-xs focus:outline-none focus:ring-1 ${fieldErrors.receiver ? 'ring-red-500' : 'focus:ring-donghai/30'}`}
                 />
+                {fieldErrors.receiver && <p className="text-[10px] text-red-500 mt-1 ml-1">{fieldErrors.receiver}</p>}
               </div>
             </div>
 
@@ -82,48 +104,97 @@ export default function AddressManagement({ onBack }: AddressManagementProps) {
                 <input 
                   type="tel" 
                   value={editingAddress?.phone || ''}
-                  onChange={(e) => setEditingAddress({ ...editingAddress, phone: e.target.value.replace(/\D/g, '').slice(0, 11) })}
+                  onChange={(e) => {
+                    setEditingAddress({ ...editingAddress, phone: e.target.value.replace(/\D/g, '').slice(0, 11) });
+                    if (fieldErrors.phone) setFieldErrors({ ...fieldErrors, phone: '' });
+                  }}
                   placeholder="请输入11位手机号"
-                  className="w-full bg-gray-50 rounded-xl h-11 pl-10 pr-4 text-xs focus:outline-none focus:ring-1 focus:ring-donghai/30"
+                  className={`w-full bg-gray-50 rounded-xl h-11 pl-10 pr-4 text-xs focus:outline-none focus:ring-1 ${fieldErrors.phone ? 'ring-red-500' : 'focus:ring-donghai/30'}`}
                 />
+                {fieldErrors.phone && <p className="text-[10px] text-red-500 mt-1 ml-1">{fieldErrors.phone}</p>}
               </div>
             </div>
 
             <div className="space-y-2">
               <label className="text-[10px] text-gray-400 ml-1">所在地区</label>
-              <div className="grid grid-cols-3 gap-2">
-                <input 
-                  type="text" 
-                  value={editingAddress?.province || ''}
-                  onChange={(e) => setEditingAddress({ ...editingAddress, province: e.target.value })}
-                  placeholder="省"
-                  className="bg-gray-50 rounded-xl h-11 px-3 text-xs focus:outline-none focus:ring-1 focus:ring-donghai/30"
-                />
-                <input 
-                  type="text" 
-                  value={editingAddress?.city || ''}
-                  onChange={(e) => setEditingAddress({ ...editingAddress, city: e.target.value })}
-                  placeholder="市"
-                  className="bg-gray-50 rounded-xl h-11 px-3 text-xs focus:outline-none focus:ring-1 focus:ring-donghai/30"
-                />
-                <input 
-                  type="text" 
-                  value={editingAddress?.district || ''}
-                  onChange={(e) => setEditingAddress({ ...editingAddress, district: e.target.value })}
-                  placeholder="区"
-                  className="bg-gray-50 rounded-xl h-11 px-3 text-xs focus:outline-none focus:ring-1 focus:ring-donghai/30"
-                />
+              <div className="grid grid-cols-3 gap-2 items-start">
+                <div className="relative">
+                  <div 
+                    onClick={() => setShowProvinceList(!showProvinceList)}
+                    className={`bg-gray-50 rounded-xl h-11 px-2 text-[10px] flex items-center justify-between cursor-pointer border ${fieldErrors.province ? 'border-red-500' : 'border-transparent text-gray-700'}`}
+                  >
+                    <span className="truncate">{editingAddress?.province || '选择省'}</span>
+                  </div>
+                  <AnimatePresence>
+                    {showProvinceList && (
+                      <>
+                        <div className="fixed inset-0 z-[100]" onClick={() => setShowProvinceList(false)} />
+                        <motion.div 
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: 10 }}
+                          className="absolute left-0 right-0 top-12 bg-white border rounded-xl shadow-2xl z-[110] max-h-48 overflow-y-auto no-scrollbar scroll-smooth p-1"
+                        >
+                          {PROVINCES.map(p => (
+                            <div 
+                              key={p} 
+                              onClick={() => {
+                                setEditingAddress({ ...editingAddress, province: p });
+                                setShowProvinceList(false);
+                                if (fieldErrors.province) setFieldErrors({ ...fieldErrors, province: '' });
+                              }}
+                              className={`p-2 text-[10px] rounded-lg active:bg-gray-100 ${editingAddress?.province === p ? 'bg-donghai/5 text-donghai font-bold' : 'text-gray-500'}`}
+                            >
+                              {p}
+                            </div>
+                          ))}
+                        </motion.div>
+                      </>
+                    )}
+                  </AnimatePresence>
+                </div>
+                <div className="space-y-1">
+                  <input 
+                    type="text" 
+                    value={editingAddress?.city || ''}
+                    onChange={(e) => {
+                      setEditingAddress({ ...editingAddress, city: e.target.value });
+                      if (fieldErrors.city) setFieldErrors({ ...fieldErrors, city: '' });
+                    }}
+                    placeholder="城市"
+                    className={`bg-gray-50 rounded-xl h-11 px-3 text-xs w-full focus:outline-none focus:ring-1 ${fieldErrors.city ? 'ring-red-500' : 'focus:ring-donghai/30'}`}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <input 
+                    type="text" 
+                    value={editingAddress?.district || ''}
+                    onChange={(e) => {
+                      setEditingAddress({ ...editingAddress, district: e.target.value.replace(/[^\u4e00-\u9fa5a-zA-Z0-9]/g, '') });
+                      if (fieldErrors.district) setFieldErrors({ ...fieldErrors, district: '' });
+                    }}
+                    placeholder="区"
+                    className={`bg-gray-50 rounded-xl h-11 px-3 text-xs w-full focus:outline-none focus:ring-1 ${fieldErrors.district ? 'ring-red-500' : 'focus:ring-donghai/30'}`}
+                  />
+                </div>
               </div>
+              {(fieldErrors.province || fieldErrors.city || fieldErrors.district) && (
+                <p className="text-[10px] text-red-500 ml-1">请填写完整所在地区信息</p>
+              )}
             </div>
 
             <div className="space-y-2">
               <label className="text-[10px] text-gray-400 ml-1">详细地址</label>
               <textarea 
                 value={editingAddress?.detail || ''}
-                onChange={(e) => setEditingAddress({ ...editingAddress, detail: e.target.value })}
+                onChange={(e) => {
+                  setEditingAddress({ ...editingAddress, detail: e.target.value });
+                  if (fieldErrors.detail) setFieldErrors({ ...fieldErrors, detail: '' });
+                }}
                 placeholder="街道、楼牌号等详细信息"
-                className="w-full bg-gray-50 rounded-xl h-24 p-3 text-xs focus:outline-none focus:ring-1 focus:ring-donghai/30 resize-none"
+                className={`w-full bg-gray-50 rounded-xl h-24 p-3 text-xs focus:outline-none focus:ring-1 resize-none ${fieldErrors.detail ? 'ring-red-500' : 'focus:ring-donghai/30'}`}
               />
+              {fieldErrors.detail && <p className="text-[10px] text-red-500 ml-1">{fieldErrors.detail}</p>}
             </div>
 
             <div className="flex items-center justify-between pt-2">
