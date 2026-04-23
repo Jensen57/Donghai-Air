@@ -563,14 +563,14 @@ export default function ProductDetail({
       {/* Share Sheet */}
       <AnimatePresence>
         {showShare && (
-          <div className="absolute inset-0 z-[100] flex items-end" onClick={() => setShowShare(false)}>
+          <div className="absolute inset-0 z-[200] flex items-end" onClick={() => setShowShare(false)}>
             <div className="absolute inset-0 bg-black/60" />
             <motion.div 
               initial={{ y: '100%' }}
               animate={{ y: 0 }}
               exit={{ y: '100%' }}
               onClick={(e) => e.stopPropagation()}
-              className="relative bg-white w-full rounded-t-[32px] p-6 pb-16"
+              className="relative bg-white w-full rounded-t-[32px] p-6 pb-12 shadow-2xl"
             >
               <div className="flex items-center justify-between mb-6">
                 <h3 className="text-lg font-bold">分享到</h3>
@@ -578,10 +578,10 @@ export default function ProductDetail({
               </div>
               <div className="grid grid-cols-4 gap-4">
                 {[
-                  { icon: 'https://img.icons8.com/color/96/weixing.png', label: '微信好友' },
-                  { icon: 'https://img.icons8.com/color/96/wechat-moments.png', label: '朋友圈' },
+                  { icon: 'https://img.icons8.com/color/96/wechat.png', label: '微信好友' },
+                  { icon: 'https://img.icons8.com/color/96/wechat.png', label: '朋友圈' },
                   { icon: 'https://img.icons8.com/color/96/qq.png', label: 'QQ好友' },
-                  { icon: 'https://img.icons8.com/color/96/copy-link.png', label: '复制链接' },
+                  { icon: 'https://img.icons8.com/color/96/link.png', label: '复制链接' },
                 ].map((item, i) => (
                   <div key={i} className="flex flex-col items-center gap-2" onClick={() => setShowShare(false)}>
                     <div className="w-12 h-12 rounded-2xl bg-gray-50 flex items-center justify-center p-2">
