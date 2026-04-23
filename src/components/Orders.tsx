@@ -40,19 +40,22 @@ const STATUS_MAP: Record<OrderStatus, { label: string, color: string }> = {
   cancelled: { label: '已取消', color: 'text-gray-300' }
 };
 
+interface OrderListCardProps {
+  key?: React.Key;
+  order: Order;
+  onSelect: (o: Order) => void;
+  onPay: (o: Order) => void;
+  onUpdateStatus: (id: string, s: OrderStatus) => void;
+  STATUS_MAP: Record<OrderStatus, { label: string; color: string }>;
+}
+
 const OrderListCard = ({ 
   order, 
   onSelect, 
   onPay, 
   onUpdateStatus, 
   STATUS_MAP 
-}: { 
-  order: Order, 
-  onSelect: (o: Order) => void,
-  onPay: (o: Order) => void,
-  onUpdateStatus: (id: string, s: OrderStatus) => void,
-  STATUS_MAP: any
-}) => {
+}: OrderListCardProps) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const items = isExpanded ? order.items : order.items.slice(0, 1);
   const hasMultiple = order.items.length > 1;

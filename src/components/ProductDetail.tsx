@@ -68,7 +68,13 @@ export default function ProductDetail({
 }: ProductDetailProps) {
   const { isLoggedIn, userInfo, toggleFavorite, addToCart } = useAuth();
   const [activeImage, setActiveImage] = useState(0);
-  const [selectedSpecs, setSelectedSpecs] = useState<Record<string, string>>({});
+  const [selectedSpecs, setSelectedSpecs] = useState<Record<string, string>>(() => {
+    const initial: Record<string, string> = {};
+    product.specs.forEach(spec => {
+      initial[spec.label] = spec.options[0];
+    });
+    return initial;
+  });
   const [quantity, setQuantity] = useState(1);
   const [isFavoriting, setIsFavoriting] = useState(false);
   const [showShare, setShowShare] = useState(false);
@@ -81,13 +87,18 @@ export default function ProductDetail({
 
   // Dynamic price calculation based on specs
   const calculatePrice = () => {
+    if (product.priceMap && Object.keys(selectedSpecs).length > 0) {
+      const specString = Object.values(selectedSpecs).sort().join('/');
+      if (product.priceMap[specString]) return product.priceMap[specString];
+    }
+    
     let basePrice = product.price || 0;
     if (product.specs && Object.keys(selectedSpecs).length > 0) {
       product.specs.forEach(spec => {
         const optionIndex = spec.options.indexOf(selectedSpecs[spec.label]);
         if (optionIndex > 0) {
           // Increase price by ~15% per spec level (rounded)
-          basePrice += Math.round(product.price * 0.15 * optionIndex);
+          basePrice += Math.round((product.price || 0) * 0.15 * optionIndex);
         }
       });
     }
@@ -112,13 +123,6 @@ export default function ProductDetail({
   const currentPoints = product.isPointsOnly ? calculatePoints() : product.points;
 
   useEffect(() => {
-    // Initialize specs
-    const initialSpecs: Record<string, string> = {};
-    product.specs.forEach(spec => {
-      initialSpecs[spec.label] = spec.options[0];
-    });
-    setSelectedSpecs(initialSpecs);
-
     // Simulate loading
     const timer = setTimeout(() => setIsLoading(false), 600);
     return () => clearTimeout(timer);

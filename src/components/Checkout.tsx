@@ -358,13 +358,13 @@ export default function Checkout({ items, onBack, onSuccess }: CheckoutProps) {
       </div>
 
       {/* Footer */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t px-4 py-3 flex items-center justify-between z-50 shadow-[0_-4px_10px_rgba(0,0,0,0.05)]">
-        <div className="text-left">
-          <span className="text-[10px] text-gray-400">应付合计</span>
-          <div className="flex flex-col">
-            {totalPrice > 0 && <div className="text-donghai font-bold text-xl leading-none">¥{totalPrice}</div>}
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t px-4 pt-3 pb-8 flex items-center justify-between z-50 shadow-[0_-8px_20px_rgba(0,0,0,0.05)]">
+        <div className="flex items-baseline gap-1.5">
+          <span className="text-[12px] text-gray-400 font-medium">应付合计</span>
+          <div className="flex items-baseline">
+            {totalPrice > 0 && <span className="text-donghai font-bold text-2xl tracking-tighter">¥{totalPrice}</span>}
             {totalPoints > 0 && (
-              <div className="flex items-center gap-0.5 text-donghai font-bold text-lg leading-none mt-1">
+              <div className="flex items-center gap-0.5 text-donghai font-bold text-lg ml-2">
                 <Coins className="w-4 h-4" />
                 <span>{totalPoints}</span>
               </div>
@@ -374,9 +374,9 @@ export default function Checkout({ items, onBack, onSuccess }: CheckoutProps) {
         <Button 
           disabled={isSubmitting}
           onClick={handleSubmit}
-          className="bg-donghai hover:bg-donghai-light text-white rounded-full px-12 h-12 font-bold shadow-lg shadow-donghai/20 min-w-[140px]"
+          className="bg-donghai hover:bg-donghai-light text-white rounded-full px-10 h-10 font-bold shadow-lg shadow-donghai/10"
         >
-          {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : orderId ? '立即支付' : (isPurePoints ? '立即兑换' : '提交订单')}
+          {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : orderId ? '立即支付' : (isPurePoints ? '立即兑换' : '提交订单')}
         </Button>
       </div>
 

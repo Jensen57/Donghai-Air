@@ -51,13 +51,11 @@ export default function WeChatHome({ onOpenMiniProgram }: WeChatHomeProps) {
   }, [isPulling, pullProgress]);
 
   const contacts = [
-    { name: '文件传输助手', msg: '[图片]', time: '昨天 22:47', icon: 'bg-green-500' },
-    { name: '联系人 1', msg: '[视频通话]', time: '昨天 20:18', icon: 'bg-blue-400' },
-    { name: '联系人 2', msg: '[视频通话]', time: '星期二', icon: 'bg-orange-400' },
-    { name: '联系人 3', msg: '每天', time: '星期六', icon: 'bg-purple-400' },
-    { name: '联系人 4', msg: '[视频通话]', time: '4月16日', icon: 'bg-pink-400' },
-    { name: '联系人 5', msg: 'https://edu.aliyun.com/...', time: '4月15日', icon: 'bg-indigo-400' },
-    { name: '大家庭', msg: '[语音] 4"', time: '3月4日', icon: 'bg-yellow-500' },
+    { name: '老板', msg: '收到，马上给您演示', time: '10:25', icon: 'bg-donghai' },
+    { name: '老大', msg: '商城下单逻辑修复得不错', time: '09:40', icon: 'bg-blue-600' },
+    { name: '小a', msg: '实名认证的功能我测试了一下', time: '09:12', icon: 'bg-green-500' },
+    { name: '小b', msg: '好的，稍后我把文档发你', time: '昨天', icon: 'bg-purple-500' },
+    { name: '小c', msg: '今天那个折叠效果挺好用的', time: '昨天', icon: 'bg-orange-500' },
   ];
 
   return (
