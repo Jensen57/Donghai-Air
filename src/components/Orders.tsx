@@ -189,8 +189,8 @@ const LogisticsDetail = ({ order, onBack }: { order: Order, onBack: () => void }
 
   if (!order.logistics) {
     return (
-      <div className="flex flex-col h-full bg-gray-50">
-        <div className="bg-white px-4 pt-12 pb-4 flex items-center gap-2 sticky top-0 z-50 border-b">
+      <>
+        <div className="bg-white px-4 pt-12 pb-4 flex items-center gap-2 shrink-0 border-b">
           <ChevronLeft className="w-6 h-6 cursor-pointer" onClick={onBack} />
           <h1 className="text-lg font-bold">物流详情</h1>
         </div>
@@ -198,13 +198,13 @@ const LogisticsDetail = ({ order, onBack }: { order: Order, onBack: () => void }
           <Truck className="w-16 h-16 mb-4 opacity-10" />
           <p className="text-sm">暂无物流信息</p>
         </div>
-      </div>
+      </>
     );
   }
 
   return (
-    <div className="flex flex-col h-full bg-gray-50">
-      <div className="bg-white px-4 pt-12 pb-4 flex items-center justify-between sticky top-0 z-50 border-b">
+    <>
+      <div className="bg-white px-4 pt-12 pb-4 flex items-center justify-between shrink-0 border-b">
         <div className="flex items-center gap-2">
           <ChevronLeft className="w-6 h-6 cursor-pointer" onClick={onBack} />
           <h1 className="text-lg font-bold">物流详情</h1>
@@ -214,7 +214,7 @@ const LogisticsDetail = ({ order, onBack }: { order: Order, onBack: () => void }
         </Button>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      <div className="flex-1 overflow-y-auto no-scrollbar p-4 space-y-4">
         {/* Logistics Header */}
         <Card className="p-4 border-none shadow-sm bg-white rounded-2xl flex gap-4">
           <div className="w-16 h-16 rounded-2xl bg-donghai/10 flex items-center justify-center">
@@ -255,7 +255,7 @@ const LogisticsDetail = ({ order, onBack }: { order: Order, onBack: () => void }
           </div>
         </Card>
       </div>
-    </div>
+    </>
   );
 };
 
@@ -269,9 +269,9 @@ const OrderDetail = ({ order, onBack, onShowLogistics, onApplyAfterSales, onPay,
   const storeName = "东海航空旗舰店";
 
   return (
-    <div className="flex flex-col h-full bg-gray-50 pb-20">
+    <>
       {/* Navigation Header */}
-      <div className="bg-white px-4 pt-12 pb-4 flex items-center justify-between sticky top-0 z-50 border-b">
+      <div className="bg-white px-4 pt-12 pb-4 flex items-center justify-between shrink-0 border-b">
         <ChevronLeft className="w-6 h-6 cursor-pointer" onClick={onBack} />
         <h1 className="text-base font-bold text-gray-800">订单详情</h1>
         <div className="flex items-center gap-4">
@@ -280,7 +280,7 @@ const OrderDetail = ({ order, onBack, onShowLogistics, onApplyAfterSales, onPay,
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto space-y-3 p-3">
+      <div className="flex-1 overflow-y-auto no-scrollbar space-y-3 p-3">
         {/* Simplified Status Info (as per P2/P3, not a big banner) */}
         <div className="px-1 py-1 flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -479,7 +479,7 @@ const OrderDetail = ({ order, onBack, onShowLogistics, onApplyAfterSales, onPay,
       </div>
 
       {/* Footer Actions */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t px-4 py-3 flex items-center justify-end gap-3 z-50">
+      <div className="bg-white border-t px-4 py-3 pb-8 flex items-center justify-end gap-3 shrink-0 shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
         {order.status === 'pendingPayment' && (
           <>
             <Button variant="outline" className="rounded-full text-xs h-9 px-6 border-gray-200">取消订单</Button>
@@ -518,7 +518,7 @@ const OrderDetail = ({ order, onBack, onShowLogistics, onApplyAfterSales, onPay,
           <Button variant="outline" className="rounded-full text-xs h-9 px-6 border-gray-200 text-gray-500">查看售后详情</Button>
         )}
       </div>
-    </div>
+    </>
   );
 };
 
@@ -595,7 +595,11 @@ export default function Orders({ onApplyAfterSales, onBack, isInternalOnly = fal
   }
 
   if (showLogistics && selectedOrder) {
-    return <LogisticsDetail order={selectedOrder} onBack={() => setShowLogistics(false)} />;
+    return (
+      <div className="absolute inset-0 z-[120] flex flex-col bg-gray-50 animate-in fade-in slide-in-from-right duration-300">
+        <LogisticsDetail order={selectedOrder} onBack={() => setShowLogistics(false)} />
+      </div>
+    );
   }
 
   const handleCloseDetail = () => {
@@ -605,14 +609,16 @@ export default function Orders({ onApplyAfterSales, onBack, isInternalOnly = fal
 
   if (selectedOrder) {
     return (
-      <OrderDetail 
-        order={selectedOrder} 
-        onBack={handleCloseDetail} 
-        onShowLogistics={() => setShowLogistics(true)}
-        onApplyAfterSales={(productId) => onApplyAfterSales(selectedOrder.id, productId)}
-        onPay={handlePayOrder}
-        isPaying={payingOrderId === selectedOrder.id}
-      />
+      <div className="absolute inset-0 z-[110] flex flex-col bg-gray-50 animate-in fade-in slide-in-from-right duration-300">
+        <OrderDetail 
+          order={selectedOrder} 
+          onBack={handleCloseDetail} 
+          onShowLogistics={() => setShowLogistics(true)}
+          onApplyAfterSales={(productId) => onApplyAfterSales(selectedOrder.id, productId)}
+          onPay={handlePayOrder}
+          isPaying={payingOrderId === selectedOrder.id}
+        />
+      </div>
     );
   }
 
