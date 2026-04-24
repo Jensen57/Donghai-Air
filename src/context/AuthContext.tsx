@@ -191,7 +191,7 @@ interface AuthContextType {
   updateAddress: (id: string, address: Partial<Address>) => void;
   deleteAddress: (id: string) => void;
   addOrder: (order: Omit<Order, 'id' | 'createdAt' | 'status'>) => Promise<string>;
-  updateOrderStatus: (orderId: string, status: OrderStatus) => void;
+  updateOrderStatus: (orderId: string, status: OrderStatus) => Promise<void>;
   applyAfterSales: (record: Omit<AfterSalesRecord, 'id' | 'status' | 'createdAt'>) => Promise<string>;
   updateAfterSalesStatus: (id: string, status: AfterSalesStatus, extra?: Partial<AfterSalesRecord>) => void;
   applyCompensation: (record: Omit<CompensationRecord, 'id' | 'status' | 'createdAt' | 'amount' | 'points'>) => Promise<string>;
@@ -379,19 +379,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const removeFromCart = (cartId: string) => {
-    if (!userInfo) return;
-    const cart = userInfo.cart.filter(c => c.id !== cartId);
-    const updated = { ...userInfo, cart };
-    setUserInfo(updated);
-    localStorage.setItem('donghai_user', JSON.stringify(updated));
+    setUserInfo(prev => {
+      if (!prev) return null;
+      const cart = prev.cart.filter(c => c.id !== cartId);
+      const updated = { ...prev, cart };
+      localStorage.setItem('donghai_user', JSON.stringify(updated));
+      return updated;
+    });
   };
 
   const clearCart = (ids: string[]) => {
-    if (!userInfo) return;
-    const cart = userInfo.cart.filter(c => !ids.includes(c.id));
-    const updated = { ...userInfo, cart };
-    setUserInfo(updated);
-    localStorage.setItem('donghai_user', JSON.stringify(updated));
+    setUserInfo(prev => {
+      if (!prev) return null;
+      const cart = prev.cart.filter(c => !ids.includes(c.id));
+      const updated = { ...prev, cart };
+      localStorage.setItem('donghai_user', JSON.stringify(updated));
+      return updated;
+    });
   };
 
   const addAddress = (address: Omit<Address, 'id'>) => {
@@ -507,7 +511,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
   };
 
-  const updateOrderStatus = (orderId: string, status: OrderStatus) => {
+  const updateOrderStatus = async (orderId: string, status: OrderStatus) => {
+    return new Promise<void>((resolve) => {
     setUserInfo(prev => {
       if (!prev) return null;
       
@@ -588,6 +593,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       localStorage.setItem('donghai_user', JSON.stringify(updated));
       return updated;
+    });
+    resolve();
     });
   };
 
@@ -973,12 +980,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const updateUser = async (info: Partial<UserInfo>) => {
     return new Promise<void>((resolve) => {
       setTimeout(() => {
-        if (userInfo) {
-          const updated = { ...userInfo, ...info };
-          setUserInfo(updated);
+        setUserInfo(prev => {
+          if (!prev) return null;
+          const updated = { ...prev, ...info };
           localStorage.setItem('donghai_user', JSON.stringify(updated));
-          resolve();
-        }
+          return updated;
+        });
+        resolve();
       }, 1000);
     });
   };

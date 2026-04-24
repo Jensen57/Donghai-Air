@@ -161,7 +161,7 @@ export default function Checkout({ items, onBack, onSuccess, onShowLogin, onShow
       });
 
       // Update order status
-      updateOrderStatus(currentOrderId, 'pendingShipment');
+      await updateOrderStatus(currentOrderId, 'pendingShipment');
       
       // Update global stock and sales (Mutation of imported constants)
       items.forEach(item => {

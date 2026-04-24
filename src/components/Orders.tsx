@@ -506,7 +506,7 @@ const OrderDetail = ({ order, onBack, onShowLogistics, onApplyAfterSales, onPay,
         {order.status === 'pendingReceipt' && (
           <>
             <Button variant="outline" className="rounded-full text-xs h-9 px-6 border-gray-200" onClick={onShowLogistics}>查看物流</Button>
-            <Button className="rounded-full text-xs h-9 px-8 bg-donghai text-white" onClick={() => updateOrderStatus(order.id, 'completed')}>确认收货</Button>
+            <Button className="rounded-full text-xs h-9 px-8 bg-donghai text-white" onClick={async () => await updateOrderStatus(order.id, 'completed')}>确认收货</Button>
           </>
         )}
         {order.status === 'completed' && (
@@ -558,10 +558,11 @@ export default function Orders({ onApplyAfterSales, onBack, isInternalOnly = fal
       } else {
         // Regular product order
         await new Promise(resolve => setTimeout(resolve, 2000));
-        updateOrderStatus(orderToPay.id, 'pendingShipment');
+        await updateOrderStatus(orderToPay.id, 'pendingShipment');
       }
       setShowCashier(false);
       setOrderToPay(null);
+
     } catch (err) {
       alert('支付失败，请稍后重试');
     } finally {
