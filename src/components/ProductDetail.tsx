@@ -54,6 +54,7 @@ interface ProductDetailProps {
   onBack: () => void;
   onCheckout: (items: any[]) => void;
   onShowLogin: (step?: 'auth' | 'phone') => void;
+  onShowEmployeeAuth?: () => void;
   onTabChange: (tab: any) => void;
   onShowCustomerService: () => void;
 }
@@ -63,6 +64,7 @@ export default function ProductDetail({
   onBack, 
   onCheckout, 
   onShowLogin, 
+  onShowEmployeeAuth,
   onTabChange,
   onShowCustomerService 
 }: ProductDetailProps) {
@@ -653,12 +655,19 @@ export default function ProductDetail({
                   if (errorType === 'phone') {
                     onShowLogin('phone');
                   } else if (errorType === 'auth') {
-                    onShowLogin('auth');
+                    if (onShowEmployeeAuth) {
+                      onShowEmployeeAuth();
+                    } else {
+                      onShowLogin('auth');
+                    }
+                  } else if (errorType === 'idVerified') {
+                    const event = new CustomEvent('navigate-id-auth');
+                    window.dispatchEvent(event);
                   }
                   setErrorType(null);
                 }}
               >
-                我知道了
+                {errorType === 'phone' ? '去绑定' : (errorType === 'auth' ? '去认证' : (errorType === 'idVerified' ? '去认证' : '我知道了'))}
               </Button>
             </motion.div>
           </div>

@@ -99,15 +99,16 @@ function AppContent() {
   const [loginStep, setLoginStep] = useState<'auth' | 'phone'>('auth');
   const [showCustomerService, setShowCustomerService] = useState(false);
 
-  const triggerLogin = (step: 'auth' | 'phone' = 'auth') => {
-    setLoginStep(step);
+  const triggerLogin = (step: any = 'auth') => {
+    const finalStep = (step === 'auth' || step === 'phone') ? step : 'auth';
+    setLoginStep(finalStep);
     setShowLogin(true);
   };
   const [showMessages, setShowMessages] = useState(false);
   const [showHelpCenter, setShowHelpCenter] = useState(false);
   const [helpCenterQuery, setHelpCenterQuery] = useState('');
 
-  const { logout } = useAuth();
+  const { logout, userInfo } = useAuth();
 
   // targetOrderId is for navigating to specific order from message center
   const [targetOrderId, setTargetOrderId] = useState<string | undefined>(undefined);
@@ -201,6 +202,14 @@ function AppContent() {
     setInitialSettingSubPage(null);
   };
 
+  const handleOpenCustomerService = () => {
+    if (userInfo) {
+      setShowCustomerService(true);
+    } else {
+      triggerLogin();
+    }
+  };
+
   const renderMainContent = () => {
     switch (activeTab) {
       case 'mall':
@@ -214,7 +223,7 @@ function AppContent() {
             onShowPointsMall={() => setShowPointsMall(true)}
             onShowLogin={triggerLogin}
             onTabChange={handleTabChange}
-            onShowCustomerService={() => setShowCustomerService(true)}
+            onShowCustomerService={handleOpenCustomerService}
           />
         );
       case 'cart':
@@ -244,7 +253,7 @@ function AppContent() {
             onShowPointsCenter={() => setShowPointsCenter(true)}
             onShowPointsMall={() => setShowPointsMall(true)}
             onShowLogin={triggerLogin}
-            onShowCustomerService={() => setShowCustomerService(true)}
+            onShowCustomerService={handleOpenCustomerService}
             initialSettingSubPage={initialSettingSubPage}
             clearInitialSettingSubPage={clearInitialSettingSubPage}
           />
@@ -258,9 +267,9 @@ function AppContent() {
             onShowEmployeeMall={() => setShowEmployeeMall(true)}
             onShowPointsCenter={() => setShowPointsCenter(true)}
             onShowPointsMall={() => setShowPointsMall(true)}
-            onShowLogin={() => setShowLogin(true)}
+            onShowLogin={triggerLogin}
             onTabChange={handleTabChange}
-            onShowCustomerService={() => setShowCustomerService(true)}
+            onShowCustomerService={handleOpenCustomerService}
           />
         );
     }
@@ -298,7 +307,7 @@ function AppContent() {
                 drag
                 dragMomentum={false}
                 dragConstraints={constraintsRef}
-                onClick={() => setShowCustomerService(true)}
+                onClick={handleOpenCustomerService}
                 className="absolute top-24 right-4 z-[100] w-12 h-12 rounded-full bg-white/90 backdrop-blur-md shadow-2xl flex items-center justify-center cursor-move active:scale-95 transition-transform border border-donghai/20"
               >
                 <Headphones className="w-6 h-6 text-donghai" />
@@ -314,6 +323,7 @@ function AppContent() {
                 onBack={() => setShowCheckout(false)} 
                 onSuccess={handleCheckoutSuccess} 
                 onShowLogin={triggerLogin}
+                onShowEmployeeAuth={() => setShowEmployeeAuth(true)}
               />
             ) : showHelpCenter ? (
               <HelpCenter onBack={() => {
@@ -347,8 +357,9 @@ function AppContent() {
                 onBack={() => setShowEmployeeMall(false)} 
                 onCheckout={handleCheckout}
                 onShowLogin={triggerLogin}
+                onShowEmployeeAuth={() => setShowEmployeeAuth(true)}
                 onTabChange={handleTabChange}
-                onShowCustomerService={() => setShowCustomerService(true)}
+                onShowCustomerService={handleOpenCustomerService}
               />
             ) : showInternalOrders ? (
               <Orders 
@@ -364,7 +375,7 @@ function AppContent() {
                 onCheckout={handleCheckout}
                 onShowLogin={triggerLogin}
                 onTabChange={handleTabChange}
-                onShowCustomerService={() => setShowCustomerService(true)}
+                onShowCustomerService={handleOpenCustomerService}
               />
             ) : showPointsCenter ? (
               <PointsCenter 

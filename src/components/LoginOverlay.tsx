@@ -11,7 +11,7 @@ interface LoginOverlayProps {
 }
 
 export default function LoginOverlay({ isOpen, onClose, startStep = 'auth' }: LoginOverlayProps) {
-  const { isLoggedIn, login, updatePhone } = useAuth();
+  const { isLoggedIn, login, updateUser } = useAuth();
   const [showAuth, setShowAuth] = useState(true);
   const [step, setStep] = useState<'auth' | 'phone' | 'success'>(startStep);
 
@@ -59,9 +59,10 @@ export default function LoginOverlay({ isOpen, onClose, startStep = 'auth' }: Lo
       setError('请输入正确的11位手机号');
       return;
     }
-    updatePhone(phoneNumber);
-    setStep('success');
-    setError(null);
+    updateUser({ phone: phoneNumber }).then(() => {
+      setStep('success');
+      setError(null);
+    });
   };
 
   const skipPhone = () => {

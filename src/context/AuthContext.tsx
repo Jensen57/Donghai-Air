@@ -247,7 +247,13 @@ const DEFAULT_USER_DATA: Partial<UserInfo> = {
   ],
   afterSales: [],
   compensations: [],
-  pointsRecords: [],
+  pointsRecords: [
+    { id: '1', amount: 500, type: 'purchase', description: '购买积分', balance: 1250, createdAt: '2026-04-20 10:00:00' },
+    { id: '2', amount: 300, type: 'compensation', description: '延误赔付积分', balance: 750, createdAt: '2026-04-18 15:30:00' },
+    { id: '3', amount: -200, type: 'consumption', description: '兑换模型扣除', balance: 450, createdAt: '2026-04-15 09:00:00' },
+    { id: '4', amount: 100, type: 'refund', description: '售后退回积分', balance: 650, createdAt: '2026-04-10 11:45:00' },
+    { id: '5', amount: 550, type: 'purchase', description: '购买积分', balance: 550, createdAt: '2026-04-05 14:20:00' },
+  ],
   messages: [
     {
       id: '1',

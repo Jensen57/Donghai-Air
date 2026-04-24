@@ -114,6 +114,7 @@ export default function Mall({ onCheckout, onShowCompensation, onShowEmployeeAut
         onBack={() => setSelectedProduct(null)} 
         onCheckout={onCheckout}
         onShowLogin={onShowLogin}
+        onShowEmployeeAuth={onShowEmployeeAuth}
         onTabChange={(tab) => {
           setSelectedProduct(null);
           onTabChange(tab);

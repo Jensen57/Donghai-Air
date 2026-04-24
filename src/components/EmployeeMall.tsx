@@ -23,7 +23,7 @@ import { useAuth } from '../context/AuthContext';
 
 const CATEGORIES = ["全部", "咖啡饮品", "精选茗茶", "航空周边"];
 
-export default function EmployeeMall({ onBack, onCheckout, onShowLogin, onTabChange, onShowCustomerService }: { onBack: () => void, onCheckout: (items: any[]) => void, onShowLogin: () => void, onTabChange: (tab: any) => void, onShowCustomerService: () => void }) {
+export default function EmployeeMall({ onBack, onCheckout, onShowLogin, onShowEmployeeAuth, onTabChange, onShowCustomerService }: { onBack: () => void, onCheckout: (items: any[]) => void, onShowLogin: (step?: 'auth' | 'phone') => void, onShowEmployeeAuth: () => void, onTabChange: (tab: any) => void, onShowCustomerService: () => void }) {
   const { userInfo } = useAuth();
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -46,7 +46,7 @@ export default function EmployeeMall({ onBack, onCheckout, onShowLogin, onTabCha
           </p>
           <Button 
             className="w-full bg-donghai text-white rounded-full h-12 font-bold"
-            onClick={onBack}
+            onClick={onShowEmployeeAuth}
           >
             去认证
           </Button>
@@ -62,6 +62,7 @@ export default function EmployeeMall({ onBack, onCheckout, onShowLogin, onTabCha
         onBack={() => setSelectedProduct(null)} 
         onCheckout={onCheckout}
         onShowLogin={onShowLogin}
+        onShowEmployeeAuth={onShowEmployeeAuth}
         onTabChange={onTabChange}
         onShowCustomerService={onShowCustomerService}
       />

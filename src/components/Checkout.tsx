@@ -26,9 +26,10 @@ interface CheckoutProps {
   onBack: () => void;
   onSuccess: (orderId: string) => void;
   onShowLogin: (step: 'auth' | 'phone') => void;
+  onShowEmployeeAuth: () => void;
 }
 
-export default function Checkout({ items, onBack, onSuccess, onShowLogin }: CheckoutProps) {
+export default function Checkout({ items, onBack, onSuccess, onShowLogin, onShowEmployeeAuth }: CheckoutProps) {
   const { userInfo, clearCart, addOrder, updateOrderStatus } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPayment, setShowPayment] = useState(false);
@@ -40,6 +41,7 @@ export default function Checkout({ items, onBack, onSuccess, onShowLogin }: Chec
   const [showAddressManagement, setShowAddressManagement] = useState(false);
   const [showPhoneBindingPrompt, setShowPhoneBindingPrompt] = useState(false);
   const [showIdAuthNeeded, setShowIdAuthNeeded] = useState(false);
+  const [showEmployeeAuthNeeded, setShowEmployeeAuthNeeded] = useState(false);
   const { updateUser } = useAuth();
 
   const defaultAddress = userInfo?.addresses.find(a => a.isDefault) || userInfo?.addresses[0];
@@ -81,7 +83,7 @@ export default function Checkout({ items, onBack, onSuccess, onShowLogin }: Chec
     const hasInternalItems = items.some(item => item.productId && item.productId.startsWith('emp-'));
     if (hasInternalItems) {
       if (!userInfo?.isEmployee || userInfo?.employeeAuth?.status !== 'approved') {
-        alert('该订单包含内购专属商品，需要完成员工认证后购买');
+        setShowEmployeeAuthNeeded(true);
         return;
       }
     }
@@ -512,10 +514,11 @@ export default function Checkout({ items, onBack, onSuccess, onShowLogin }: Chec
                   className="flex-1 rounded-full h-11 font-bold border-gray-200 text-gray-600"
                   onClick={() => {
                     setShowIdAuthNeeded(false);
-                    alert('请去设置里进行认证');
+                    const event = new CustomEvent('navigate-id-auth');
+                    window.dispatchEvent(event);
                   }}
                 >
-                  稍后
+                  我知道了
                 </Button>
                 <Button 
                   className="flex-1 bg-donghai text-white rounded-full h-11 font-bold"
@@ -523,6 +526,51 @@ export default function Checkout({ items, onBack, onSuccess, onShowLogin }: Chec
                     setShowIdAuthNeeded(false);
                     const event = new CustomEvent('navigate-id-auth');
                     window.dispatchEvent(event);
+                  }}
+                >
+                  去认证
+                </Button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Employee Auth Required Modal */}
+      <AnimatePresence>
+        {showEmployeeAuthNeeded && (
+          <div className="fixed inset-0 z-[200] flex items-center justify-center px-6">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowEmployeeAuthNeeded(false)}
+              className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+            />
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="relative bg-white rounded-[32px] p-6 w-full max-w-xs text-center shadow-2xl"
+            >
+              <div className="w-16 h-16 bg-donghai/5 rounded-full flex items-center justify-center mx-auto mb-4">
+                <ShieldCheck className="w-8 h-8 text-donghai" />
+              </div>
+              <h3 className="text-lg font-bold text-gray-800 mb-2">提示</h3>
+              <p className="text-xs text-gray-500 mb-6 leading-relaxed">您的订单包含内购商品，请先完成员工身份认证。</p>
+              <div className="flex gap-3">
+                <Button 
+                  variant="outline"
+                  className="flex-1 rounded-full h-11 font-bold border-gray-200 text-gray-600"
+                  onClick={() => setShowEmployeeAuthNeeded(false)}
+                >
+                  稍后
+                </Button>
+                <Button 
+                  className="flex-1 bg-donghai text-white rounded-full h-11 font-bold"
+                  onClick={() => {
+                    setShowEmployeeAuthNeeded(false);
+                    onShowEmployeeAuth();
                   }}
                 >
                   去认证
