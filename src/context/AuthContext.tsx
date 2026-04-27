@@ -514,7 +514,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const updateOrderStatus = async (orderId: string, status: OrderStatus) => {
     return new Promise<void>((resolve) => {
     setUserInfo(prev => {
-      if (!prev) return null;
+      if (!prev) {
+        resolve();
+        return null;
+      }
       
       let oldStatus: OrderStatus | undefined;
       let orderPoints = 0;
@@ -538,7 +541,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return o;
       });
 
-      if (!oldStatus) return prev;
+      if (!oldStatus) {
+        resolve();
+        return prev;
+      }
 
       const counts = { ...prev.orderCounts };
       if (oldStatus in counts) (counts as any)[oldStatus] = Math.max(0, (counts as any)[oldStatus] - 1);
@@ -592,9 +598,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       localStorage.setItem('donghai_user', JSON.stringify(updated));
+      resolve();
       return updated;
     });
-    resolve();
     });
   };
 
