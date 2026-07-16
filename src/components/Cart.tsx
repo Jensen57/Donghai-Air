@@ -56,16 +56,12 @@ export default function Cart({ onBack, onCheckout, onShowLogin }: { onBack: () =
   const hasPointsSelected = selectedItems.some(item => item.isPointsOnly);
   const hasInternalSelected = selectedItems.some(item => item.productId.startsWith('emp-'));
   
-  const selectedTypesCount = [hasNormalSelected, hasPointsSelected, hasInternalSelected].filter(Boolean).length;
-  const isMixedSelection = selectedTypesCount > 1;
+  const isMixedSelection = false;
 
-  const totalPrice = selectedItems
-    .filter(item => !item.isPointsOnly)
-    .reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const totalPrice = 0;
 
   const totalPoints = selectedItems
-    .filter(item => item.isPointsOnly)
-    .reduce((sum, item) => sum + (item.points || 0) * item.quantity, 0);
+    .reduce((sum, item) => sum + (item.points || item.price || 0) * item.quantity, 0);
 
   const handleCheckout = () => {
     if (!isLoggedIn) {
@@ -123,14 +119,10 @@ export default function Cart({ onBack, onCheckout, onShowLogin }: { onBack: () =
         </div>
         
         <div className="flex items-center justify-between">
-          {item.isPointsOnly ? (
-            <div className="flex items-center gap-0.5 text-donghai font-bold text-sm">
-              <Coins className="w-3.5 h-3.5" />
-              <span>{item.points}</span>
-            </div>
-          ) : (
-            <div className="text-donghai font-bold text-sm">¥{item.price}</div>
-          )}
+          <div className="flex items-center gap-0.5 text-donghai font-bold text-sm">
+            <Coins className="w-3.5 h-3.5" />
+            <span>{item.points || item.price} 积分</span>
+          </div>
           <div className="flex items-center gap-3 bg-gray-50 rounded-full px-2 py-0.5">
             <button 
               className="w-6 h-6 flex items-center justify-center text-gray-400 disabled:opacity-30"
@@ -171,13 +163,6 @@ export default function Cart({ onBack, onCheckout, onShowLogin }: { onBack: () =
           <div className="flex items-center gap-2">
             <ChevronLeft className="w-6 h-6 cursor-pointer" onClick={onBack} />
             <h1 className="text-lg font-bold">购物车 ({cartItems.length})</h1>
-            <div 
-              onClick={() => setShowAddressManagement(true)}
-              className="flex items-center gap-1 px-2 py-1 bg-gray-100 rounded-full cursor-pointer ml-1 active:bg-gray-200 transition-colors"
-            >
-              <MapPin className="w-3 h-3 text-donghai" />
-              <span className="text-[10px] text-gray-600">收货地址</span>
-            </div>
           </div>
           {cartItems.length > 0 && (
             <div className="flex gap-4">

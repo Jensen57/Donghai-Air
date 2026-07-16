@@ -46,7 +46,7 @@ export default function LoginOverlay({ isOpen, onClose, startStep = 'auth' }: Lo
           nickname: '东海旅客',
           avatar: 'https://picsum.photos/seed/user/200/200'
         });
-        setStep('phone');
+        setStep('success');
         setError(null);
       } else {
         setError('授权失败，请重新尝试');

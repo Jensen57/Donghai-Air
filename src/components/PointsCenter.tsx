@@ -81,14 +81,6 @@ export default function PointsCenter({ onBack, onShowBuyPoints, onShowPointsMall
 
   const quickActions = [
     { 
-      label: '购买积分', 
-      sub: '可用现金购买，快速累计积分', 
-      icon: CreditCard, 
-      color: 'text-donghai', 
-      bg: 'bg-donghai/10', 
-      onClick: onShowBuyPoints 
-    },
-    { 
       label: '积分兑换', 
       sub: '精选航空周边，积分超值购', 
       icon: Gift, 

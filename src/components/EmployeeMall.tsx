@@ -172,8 +172,8 @@ export default function EmployeeMall({ onBack, onCheckout, onShowLogin, onShowEm
                   {product.name}
                 </h3>
                 <div className="flex items-baseline gap-1.5 mb-1">
-                  <span className="text-sm font-bold text-red-500">¥{product.price}</span>
-                  <span className="text-[9px] text-gray-400 line-through">¥{product.originalPrice}</span>
+                  <span className="text-sm font-bold text-red-500">{product.points || product.price} 积分</span>
+                  <span className="text-[9px] text-gray-400 line-through">{(product.originalPrice * 10) || ((product.points || product.price) * 1.5)} 积分</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-[9px] text-gray-400">已售 {product.sales}</span>

@@ -165,15 +165,8 @@ export default function SearchPage({ onBack, onProductClick }: SearchPageProps) 
                 <div className="p-3 flex-1 flex flex-col">
                   <h3 className="text-xs font-medium text-gray-800 line-clamp-2 h-8 mb-2 whitespace-normal flex-shrink-0">{product.name}</h3>
                   <div className="flex items-center justify-between mt-auto">
-                    <div className="text-donghai font-bold">
-                      {product.price > 0 ? (
-                        <>
-                          <span className="text-[10px]">¥</span>
-                          <span className="text-sm">{product.price}</span>
-                        </>
-                      ) : (
-                        <span className="text-sm">{(product as any).points} 积分</span>
-                      )}
+                    <div className="text-donghai font-bold text-sm">
+                      {product.points || product.price} <span className="text-[10px] font-normal">积分</span>
                     </div>
                     <span className="text-[10px] text-gray-400">销量 {product.sales}</span>
                   </div>

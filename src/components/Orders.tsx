@@ -97,14 +97,10 @@ const OrderListCard = ({
                   </span>
                   <div className="flex items-baseline gap-1.5 font-bold">
                     <span className="text-[11px] text-gray-400 font-normal">x{item.quantity}</span>
-                    {item.isPointsOnly ? (
-                      <div className="flex items-center gap-0.5 text-donghai text-[12px]">
-                        <Coins className="w-2.5 h-2.5" />
-                        <span>{item.points}</span>
-                      </div>
-                    ) : (
-                      <div className="text-donghai text-[12px]">¥{item.price}</div>
-                    )}
+                    <div className="flex items-center gap-0.5 text-donghai text-[12px]">
+                      <Coins className="w-2.5 h-2.5" />
+                      <span>{item.points || item.price} 积分</span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -129,8 +125,7 @@ const OrderListCard = ({
       <div className="flex justify-between items-center mt-2.5 pt-2 border-t border-gray-50/50">
         <div className="text-[11px] text-gray-400">
           实付: <span className="text-donghai font-bold">
-            {order.totalAmount > 0 ? `¥${order.totalAmount}` : ''}
-            {order.totalPoints && order.totalPoints > 0 ? `${order.totalAmount > 0 ? '+' : ''}${order.totalPoints}积分` : ''}
+            {order.totalPoints || order.totalAmount || 0} 积分
           </span>
         </div>
         <div className="flex gap-1.5">
@@ -319,17 +314,10 @@ const OrderDetail = ({ order, onBack, onShowLogistics, onApplyAfterSales, onPay,
                     <div className="flex justify-between items-start gap-2">
                       <h4 className="text-sm font-bold text-gray-800 line-clamp-2 leading-snug">{item.name}</h4>
                       <div className="text-right flex-shrink-0">
-                        {item.isPointsOnly ? (
-                          <div className="flex items-center gap-0.5 text-donghai font-bold text-sm">
-                            <Coins className="w-3 h-3" />
-                            <span>{item.points}</span>
-                          </div>
-                        ) : (
-                          <>
-                            <div className="text-gray-800 font-bold text-sm">¥{item.price}</div>
-                            <div className="text-[10px] text-gray-300 line-through">¥{(item.price * 1.2).toFixed(2)}</div>
-                          </>
-                        )}
+                        <div className="flex items-center gap-0.5 text-donghai font-bold text-sm">
+                          <Coins className="w-3 h-3" />
+                          <span>{item.points || item.price} 积分</span>
+                        </div>
                       </div>
                     </div>
                     <p className="text-[10px] text-gray-400 mt-1">
@@ -357,14 +345,13 @@ const OrderDetail = ({ order, onBack, onShowLogistics, onApplyAfterSales, onPay,
 
           <div className="mt-6 pt-4 border-t border-gray-50 space-y-4">
              <div className="flex justify-between items-center text-xs">
-                <span className="text-gray-400">商品总额</span>
-                <span className="text-gray-800 font-medium">¥{order.totalAmount.toFixed(2)}</span>
+                <span className="text-gray-400">商品总积分</span>
+                <span className="text-gray-800 font-medium">{order.totalPoints || order.totalAmount || 0} 积分</span>
              </div>
              <div className="flex justify-between items-center text-xs font-bold">
-                <span className="text-gray-800">实付款</span>
+                <span className="text-gray-800">实付积分</span>
                 <div className="flex items-center gap-1">
-                  <span className="text-[10px] text-red-500 font-normal">共减¥{(order.totalAmount * 0.1).toFixed(2)}</span>
-                  <span className="text-lg text-donghai">¥{order.totalAmount.toFixed(2)}</span>
+                  <span className="text-lg text-donghai">{order.totalPoints || order.totalAmount || 0} 积分</span>
                   <ChevronRight className="w-3 h-3 text-donghai" />
                 </div>
              </div>
@@ -462,7 +449,7 @@ const OrderDetail = ({ order, onBack, onShowLogistics, onApplyAfterSales, onPay,
             {[
               { title: '先行赔付', desc: '最高赔付2000元' },
               { title: '正品保证', desc: '官方严选假一赔十' },
-              { title: '售后无忧', desc: '专属客服实时在线' }
+              { title: '售后无忧', desc: '专属电话客服保障' }
             ].map((item, i) => (
               <div key={i} className="min-w-[160px] bg-white p-3 rounded-xl border border-gray-50 flex items-center gap-3 shadow-sm">
                 <div className="w-8 h-8 rounded-lg bg-donghai/5 flex items-center justify-center">
@@ -709,7 +696,7 @@ export default function Orders({ onApplyAfterSales, onBack, isInternalOnly = fal
               </div>
               
               <div className="text-center space-y-1">
-                <div className="text-3xl font-bold">¥{orderToPay.totalAmount.toFixed(2)}</div>
+                <div className="text-3xl font-bold">{orderToPay.totalPoints || orderToPay.totalAmount} 积分</div>
                 <div className="text-xs text-gray-400">东海航空-订单支付 (单号:{orderToPay.id})</div>
               </div>
 

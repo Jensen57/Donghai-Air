@@ -92,7 +92,6 @@ function AppContent() {
   const [showEmployeeAuth, setShowEmployeeAuth] = useState(false);
   const [showEmployeeMall, setShowEmployeeMall] = useState(false);
   const [showInternalOrders, setShowInternalOrders] = useState(false);
-  const [showBuyPoints, setShowBuyPoints] = useState(false);
   const [showPointsCenter, setShowPointsCenter] = useState(false);
   const [showPointsMall, setShowPointsMall] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
@@ -108,7 +107,7 @@ function AppContent() {
   const [showHelpCenter, setShowHelpCenter] = useState(false);
   const [helpCenterQuery, setHelpCenterQuery] = useState('');
 
-  const { logout, userInfo } = useAuth();
+  const { logout, userInfo, showBuyPoints, setShowBuyPoints } = useAuth();
 
   // targetOrderId is for navigating to specific order from message center
   const [targetOrderId, setTargetOrderId] = useState<string | undefined>(undefined);

@@ -68,7 +68,7 @@ export default function ProductDetail({
   onTabChange,
   onShowCustomerService 
 }: ProductDetailProps) {
-  const { isLoggedIn, userInfo, toggleFavorite, addToCart } = useAuth();
+  const { isLoggedIn, userInfo, toggleFavorite, addToCart, setShowBuyPoints } = useAuth();
   const [activeImage, setActiveImage] = useState(0);
   const [selectedSpecs, setSelectedSpecs] = useState<Record<string, string>>(() => {
     const initial: Record<string, string> = {};
@@ -84,7 +84,7 @@ export default function ProductDetail({
   const [showToast, setShowToast] = useState(false);
   const [showFavoriteToast, setShowFavoriteToast] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [errorType, setErrorType] = useState<'auth' | 'phone' | 'idVerified' | null>(null);
+  const [errorType, setErrorType] = useState<'auth' | 'phone' | 'idVerified' | 'points' | null>(null);
 
   const isFavorite = userInfo?.favorites?.includes(product.id);
 
@@ -138,16 +138,6 @@ export default function ProductDetail({
       onShowLogin('auth');
       return false;
     }
-    if (!userInfo?.phone) {
-      setErrorType('phone');
-      setErrorMsg('为了您的账户安全，请先绑定手机号');
-      return false;
-    }
-    if (!userInfo?.isIdVerified) {
-      setErrorType('idVerified');
-      setErrorMsg('根据相关法规，购买及相关互动需要完成实名认证');
-      return false;
-    }
     return true;
   };
 
@@ -171,11 +161,13 @@ export default function ProductDetail({
       }
     }
 
-    // Points Only Check
-    if (product.isPointsOnly && userInfo) {
-      const totalPointsNeeded = (product.points || 0) * quantity;
+    // Points check (All products are redeemed with points)
+    if (userInfo) {
+      const pointsPerItem = product.points || product.price || 0;
+      const totalPointsNeeded = pointsPerItem * quantity;
       if (userInfo.points < totalPointsNeeded) {
-        setErrorMsg('您的积分余额不足，请先购买积分或积累积分');
+        setErrorType('points');
+        setErrorMsg(`您的积分余额不足，兑换该商品需要 ${totalPointsNeeded} 积分，当前仅有 ${userInfo.points} 积分。`);
         return;
       }
     }
@@ -355,18 +347,13 @@ export default function ProductDetail({
         {/* Info Section */}
         <div className="bg-white p-4 space-y-3">
           <div className="flex items-baseline gap-2">
-            {product.isPointsOnly ? (
-              <div className="flex items-center gap-1 text-donghai text-2xl font-bold">
-                <Coins className="w-5 h-5" />
-                <span>{product.points}</span>
-              </div>
-            ) : (
-              <span className="text-donghai text-2xl font-bold">
-                {currentPrice > 0 ? `¥${currentPrice}` : `${product.points} 积分`}
-              </span>
-            )}
-            {product.originalPrice && !product.isPointsOnly && (
-              <span className="text-sm text-gray-400 line-through">¥{product.originalPrice}</span>
+            <div className="flex items-center gap-1 text-donghai text-2xl font-bold">
+              <Coins className="w-5 h-5" />
+              <span>{product.points || currentPrice}</span>
+              <span className="text-xs font-normal text-gray-500 ml-1">积分</span>
+            </div>
+            {product.originalPrice && (
+              <span className="text-sm text-gray-400 line-through">{(product.originalPrice * 10) || ((product.points || currentPrice) * 1.5)} 积分</span>
             )}
             {product.tag && (
               <Badge className="bg-donghai/10 text-donghai text-[10px] border-none ml-2">
@@ -404,14 +391,7 @@ export default function ProductDetail({
             </div>
           )}
           <h1 className="text-lg font-bold text-gray-800 leading-tight">{product.name}</h1>
-          <div className="flex items-center justify-between text-xs text-gray-400">
-            <div className="flex items-center gap-3">
-              <span>销量 {product.sales}</span>
-              <div className="flex items-center gap-1">
-                <Star className="w-3 h-3 text-yellow-400 fill-current" />
-                <span>好评率 {product.rating}%</span>
-              </div>
-            </div>
+          <div className="text-xs text-gray-400">
             <span>库存 {product.stock}</span>
           </div>
         </div>
@@ -540,13 +520,13 @@ export default function ProductDetail({
                 onClick={handleAddToCart}
                 className="flex-1 rounded-full border-donghai text-donghai h-11 font-bold"
               >
-                {isAddingToCart ? <Loader2 className="w-4 h-4 animate-spin" /> : (product.isPointsOnly ? '加入兑换车' : '加入购物车')}
+                {isAddingToCart ? <Loader2 className="w-4 h-4 animate-spin" /> : '加入兑换车'}
               </Button>
               <Button 
                 onClick={handleBuyNow}
                 className="flex-1 rounded-full bg-donghai hover:bg-donghai-light text-white h-11 font-bold"
               >
-                {product.isPointsOnly ? '立即兑换' : '立即购买'}
+                立即兑换
               </Button>
             </>
           ) : (
@@ -663,11 +643,13 @@ export default function ProductDetail({
                   } else if (errorType === 'idVerified') {
                     const event = new CustomEvent('navigate-id-auth');
                     window.dispatchEvent(event);
+                  } else if (errorType === 'points') {
+                    setShowBuyPoints(true);
                   }
                   setErrorType(null);
                 }}
               >
-                {errorType === 'phone' ? '去绑定' : (errorType === 'auth' ? '去认证' : (errorType === 'idVerified' ? '去认证' : '我知道了'))}
+                {errorType === 'points' ? '去购买积分' : (errorType === 'phone' ? '去绑定' : (errorType === 'auth' ? '去认证' : (errorType === 'idVerified' ? '去认证' : '我知道了')))}
               </Button>
             </motion.div>
           </div>

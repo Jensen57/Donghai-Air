@@ -268,33 +268,6 @@ export default function Settings({ onBack, initialSubPage = null }: SettingsProp
         );
       case 'phone':
         return <PhoneBindingPage userInfo={userInfo} onBack={() => setActiveSubPage(null)} updateUser={updateUser} />;
-      case 'permissions':
-        const permissions = [
-          { name: '相机权限', desc: '用于拍照上传头像、订单评价等', status: true },
-          { name: '地理位置', desc: '为您推荐附近的机场及服务内容', status: true },
-          { name: '通知提醒', desc: '第一时间获知订单动态与优惠信息', status: true },
-          { name: '相册访问', desc: '用于选取照片上传、保存图片等', status: true },
-        ];
-        return (
-          <div className="flex flex-col h-full bg-white animate-in slide-in-from-right duration-300">
-            <div className="pt-12 pb-4 px-4 flex items-center gap-2 border-b">
-              <ChevronLeft className="w-6 h-6 cursor-pointer" onClick={() => setActiveSubPage(null)} />
-              <h2 className="text-lg font-bold">权限管理</h2>
-            </div>
-            <div className="p-4 space-y-4">
-              {permissions.map((p, i) => (
-                <div key={i} className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl">
-                  <div className="flex-1">
-                    <div className="text-sm font-bold text-gray-800">{p.name}</div>
-                    <div className="text-[10px] text-gray-400 mt-1">{p.desc}</div>
-                  </div>
-                  <Switch defaultChecked={p.status} />
-                </div>
-              ))}
-              <p className="text-center text-[10px] text-gray-400 pt-4">您可以根据需要随时开启或关闭相关权限</p>
-            </div>
-          </div>
-        );
       case 'employeeAuth':
         return <EmployeeAuth onBack={() => setActiveSubPage(null)} />;
       default:
@@ -321,32 +294,6 @@ export default function Settings({ onBack, initialSubPage = null }: SettingsProp
         <div>
           <div className="px-2 mb-2 text-xs font-medium text-gray-400">账号与安全</div>
           <Card className="overflow-hidden border-none shadow-sm bg-white rounded-2xl">
-            <div 
-              className="flex items-center justify-between p-4 border-b border-gray-50 active:bg-gray-50 cursor-pointer"
-              onClick={() => setActiveSubPage('phone')}
-            >
-              <div className="flex items-center gap-3">
-                <Smartphone className="w-5 h-5 text-gray-500" />
-                <span className="text-sm text-gray-800">手机绑定</span>
-              </div>
-              <div className="flex items-center gap-1 text-xs text-gray-400">
-                <span>{userInfo?.phone ? userInfo.phone.replace(/(\d{3})\d{4}(\d{4})/, '$1****$2') : '未绑定'}</span>
-                <ChevronRight className="w-4 h-4" />
-              </div>
-            </div>
-            <div 
-              className="flex items-center justify-between p-4 border-b border-gray-50 active:bg-gray-50 cursor-pointer"
-              onClick={() => setActiveSubPage('idAuth')}
-            >
-              <div className="flex items-center gap-3">
-                <Shield className="w-5 h-5 text-gray-500" />
-                <span className="text-sm text-gray-800">实名认证</span>
-              </div>
-              <div className={`flex items-center gap-1 text-xs ${userInfo?.isIdVerified ? 'text-green-500' : 'text-donghai font-medium'}`}>
-                <span>{userInfo?.isIdVerified ? '已认证' : '去认证'}</span>
-                <ChevronRight className="w-4 h-4 text-gray-300" />
-              </div>
-            </div>
             <div 
               className="flex items-center justify-between p-4 active:bg-gray-50 cursor-pointer"
               onClick={() => setActiveSubPage('employeeAuth')}
@@ -376,28 +323,6 @@ export default function Settings({ onBack, initialSubPage = null }: SettingsProp
         <div>
           <div className="px-2 mb-2 text-xs font-medium text-gray-400">隐私设置</div>
           <Card className="overflow-hidden border-none shadow-sm bg-white rounded-2xl">
-            <div className="flex items-center justify-between p-4 border-b border-gray-50">
-              <div className="flex items-center gap-3">
-                <Eye className="w-5 h-5 text-gray-500" />
-                <div className="flex flex-col">
-                  <div className="flex items-center gap-1">
-                    <span className="text-sm text-gray-800">个性化推荐</span>
-                    <Info className="w-3 h-3 text-gray-400 cursor-pointer" onClick={() => setShowInfoModal(true)} />
-                  </div>
-                </div>
-              </div>
-              <Switch checked={personalizedAds} onChange={(e) => setPersonalizedAds(e.target.checked)} />
-            </div>
-            <div 
-              className="flex items-center justify-between p-4 border-b border-gray-50 active:bg-gray-50 cursor-pointer"
-              onClick={() => setActiveSubPage('permissions')}
-            >
-              <div className="flex items-center gap-3">
-                <Database className="w-5 h-5 text-gray-500" />
-                <span className="text-sm text-gray-800">权限管理</span>
-              </div>
-              <ChevronRight className="w-4 h-4 text-gray-300" />
-            </div>
             <div 
               className="flex items-center justify-between p-4 active:bg-gray-50 cursor-pointer text-red-500"
               onClick={() => setShowDeleteConfirm(true)}
@@ -415,13 +340,6 @@ export default function Settings({ onBack, initialSubPage = null }: SettingsProp
         <div>
           <div className="px-2 mb-2 text-xs font-medium text-gray-400">系统</div>
           <Card className="overflow-hidden border-none shadow-sm bg-white rounded-2xl">
-            <div className="flex items-center justify-between p-4 border-b border-gray-50">
-              <div className="flex items-center gap-3">
-                <Bell className="w-5 h-5 text-gray-500" />
-                <span className="text-sm text-gray-800">消息通知</span>
-              </div>
-              <Switch checked={notifications} onChange={(e) => setNotifications(e.target.checked)} />
-            </div>
             <div className="flex items-center justify-between p-4 active:bg-gray-50 cursor-pointer">
               <div className="flex items-center gap-3">
                 <Info className="w-5 h-5 text-gray-500" />
@@ -437,50 +355,6 @@ export default function Settings({ onBack, initialSubPage = null }: SettingsProp
         </div>
       </div>
 
-      {/* Info Modal for Personalized Recommendations */}
-      <AnimatePresence>
-        {showInfoModal && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center px-8">
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setShowInfoModal(false)}
-              className="absolute inset-0 bg-black/60"
-            />
-            <motion.div 
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              className="relative bg-white w-full max-w-sm rounded-[32px] p-6 shadow-2xl z-10"
-            >
-              <div className="flex justify-between items-start mb-4">
-                <h3 className="text-lg font-bold">关于个性化推荐</h3>
-                <X className="w-5 h-5 text-gray-400 cursor-pointer" onClick={() => setShowInfoModal(false)} />
-              </div>
-              <div className="space-y-4 text-sm text-gray-600 leading-relaxed">
-                <p>
-                  个性化推荐指的是系统根据您的<span className="text-donghai font-bold">历史订单、搜索习惯和浏览偏好</span>，为您展示更符合您兴趣的商品和优惠信息。
-                </p>
-                <div className="bg-gray-50 p-4 rounded-2xl flex gap-3">
-                  <CheckCircle2 className="w-5 h-5 text-green-500 flex-shrink-0" />
-                  <p className="text-xs text-gray-500">开启后：您将更高效地发现感兴趣的低价航班和旅游服务。</p>
-                </div>
-                <div className="bg-gray-50 p-4 rounded-2xl flex gap-3">
-                  <AlertCircle className="w-5 h-5 text-orange-400 flex-shrink-0" />
-                  <p className="text-xs text-gray-500">关闭后：推荐内容的相关度可能会降低，您将看到更多通用型信息。</p>
-                </div>
-              </div>
-              <Button 
-                onClick={() => setShowInfoModal(false)}
-                className="w-full mt-6 bg-donghai text-white rounded-xl h-12 font-bold"
-              >
-                我知道了
-              </Button>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
       {/* Delete Account Confirmation */}
       <AnimatePresence>
         {showDeleteConfirm && (

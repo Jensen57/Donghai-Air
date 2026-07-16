@@ -181,6 +181,8 @@ interface AuthContextType {
   login: (info: Partial<UserInfo>) => void;
   logout: () => void;
   updateUser: (info: Partial<UserInfo>) => Promise<void>;
+  showBuyPoints: boolean;
+  setShowBuyPoints: (show: boolean) => void;
   setUnreadCount: (count: number) => void;
   toggleFavorite: (productId: string) => Promise<void>;
   addToCart: (item: Omit<CartItem, 'id'>) => Promise<void>;
@@ -291,6 +293,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
   const [notification, setNotification] = useState<{ title: string, content: string } | null>(null);
+  const [showBuyPoints, setShowBuyPoints] = useState(false);
 
   useEffect(() => {
     const savedUser = localStorage.getItem('donghai_user');
@@ -999,7 +1002,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <AuthContext.Provider value={{ 
-      isLoggedIn, userInfo, login, logout, updateUser, setUnreadCount, toggleFavorite,
+      isLoggedIn, userInfo, login, logout, updateUser, showBuyPoints, setShowBuyPoints, setUnreadCount, toggleFavorite,
       addToCart, updateCartQuantity, removeFromCart, clearCart,
       addAddress, updateAddress, deleteAddress, addOrder, updateOrderStatus,
       applyAfterSales, updateAfterSalesStatus,

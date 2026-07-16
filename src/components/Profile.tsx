@@ -190,14 +190,6 @@ export default function Profile({ onCheckout, onTabChange, onShowAfterSales, onS
             </div>
           </div>
           <div className="flex gap-4">
-            <div className="relative cursor-pointer" onClick={() => setShowMessages(true)}>
-              <Bell className="w-5 h-5 opacity-70" />
-              {userInfo?.unreadMessagesCount && userInfo.unreadMessagesCount > 0 ? (
-                <Badge className="absolute -top-1 -right-1 bg-red-500 text-white text-[8px] h-3.5 min-w-[14px] flex items-center justify-center p-0 border-none">
-                  {userInfo.unreadMessagesCount}
-                </Badge>
-              ) : null}
-            </div>
             <Settings className="w-5 h-5 opacity-70 cursor-pointer" onClick={() => {
               clearInitialSettingSubPage?.();
               setShowSettings(true);
@@ -299,7 +291,6 @@ export default function Profile({ onCheckout, onTabChange, onShowAfterSales, onS
         <Card className="overflow-hidden border-none shadow-sm bg-white rounded-2xl">
           {[
             { icon: Heart, label: '我的收藏', extra: `${userInfo?.favorites?.length || 0}件`, onClick: () => setShowFavorites(true) },
-            { icon: Bell, label: '消息中心', extra: `${userInfo?.unreadMessagesCount || 0}条未读`, onClick: () => setShowMessages(true) },
             { icon: HelpCircle, label: '帮助中心', extra: '', onClick: () => setShowHelp(true) },
             { icon: MessageSquare, label: '意见反馈', extra: '', onClick: () => setShowFeedback(true) },
             { icon: Settings, label: '设置', extra: '', onClick: () => {

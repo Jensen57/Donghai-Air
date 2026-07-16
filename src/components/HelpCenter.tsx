@@ -28,7 +28,7 @@ const FAQ_DATA = [
       { q: '如何申请退款？', a: '在“我的订单”中找到对应订单，点击“申请售后”，选择“仅退款”或“退货退款”并填写原因即可。' },
       { q: '物流信息在哪里查看？', a: '在“我的订单”列表中点击目标订单，进入“订单详情”页面即可查看实时物流动态。' },
       { q: '下单后多久发货？', a: '实物商品通常在下单后48小时内发货，节假日顺延。' },
-      { q: '如何修改收货地址？', a: '在订单处于“待发货”状态时，可以联系在线客服或在订单详情页尝试修改。' }
+      { q: '如何修改收货地址？', a: '在订单处于“待发货”状态时，可以联系电话客服或在订单详情页尝试修改。' }
     ]
   },
   {
@@ -108,20 +108,24 @@ export default function HelpCenter({ onBack, initialSearch = '' }: { onBack: () 
 
       {/* Quick Contact */}
       {!searchQuery && (
-        <div className="p-4 grid grid-cols-2 gap-4">
-          <Card className="p-4 border-none shadow-sm flex flex-col items-center gap-2 active:bg-gray-50 transition-colors" onClick={handleContact}>
-            <div className="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center">
-              <MessageSquare className="w-6 h-6 text-blue-500" />
+        <div className="p-4">
+          <Card 
+            className="p-4 border-none shadow-sm flex items-center justify-between active:bg-gray-50 transition-colors cursor-pointer bg-white rounded-2xl" 
+            onClick={() => window.location.href = 'tel:010-888888'}
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-full bg-green-50 flex items-center justify-center shrink-0">
+                <Phone className="w-6 h-6 text-green-500" />
+              </div>
+              <div>
+                <span className="text-sm font-bold text-gray-800 block">电话客服</span>
+                <span className="text-[10px] text-gray-400">周一至周日 09:00 - 21:00</span>
+              </div>
             </div>
-            <span className="text-sm font-medium">在线客服</span>
-            <span className="text-[10px] text-gray-400">09:00 - 21:00</span>
-          </Card>
-          <Card className="p-4 border-none shadow-sm flex flex-col items-center gap-2 active:bg-gray-50 transition-colors" onClick={handleContact}>
-            <div className="w-12 h-12 rounded-full bg-green-50 flex items-center justify-center">
-              <Phone className="w-6 h-6 text-green-500" />
+            <div className="flex items-center gap-1 bg-green-500/10 text-green-600 px-3 py-1.5 rounded-full text-[10px] font-bold">
+              <Phone className="w-3 h-3" />
+              <span>拨打 010-888888</span>
             </div>
-            <span className="text-sm font-medium">电话客服</span>
-            <span className="text-[10px] text-gray-400">24小时服务</span>
           </Card>
         </div>
       )}

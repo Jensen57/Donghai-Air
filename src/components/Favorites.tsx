@@ -143,7 +143,7 @@ export default function Favorites({ onBack, onCheckout, onShowLogin, onTabChange
                 <div className="text-[10px] text-gray-400 mt-1">销量 {product.sales}</div>
               </div>
               <div className="flex items-center justify-between">
-                <div className="text-donghai font-bold text-sm">¥{product.price}</div>
+                <div className="text-donghai font-bold text-sm">{(product as any).points || product.price} 积分</div>
                 <button 
                   className="p-1.5 text-red-500 hover:bg-red-50 rounded-full transition-colors"
                   onClick={(e) => {

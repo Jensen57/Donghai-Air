@@ -30,7 +30,7 @@ interface CheckoutProps {
 }
 
 export default function Checkout({ items, onBack, onSuccess, onShowLogin, onShowEmployeeAuth }: CheckoutProps) {
-  const { userInfo, clearCart, addOrder, updateOrderStatus } = useAuth();
+  const { userInfo, clearCart, addOrder, updateOrderStatus, setShowBuyPoints } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPayment, setShowPayment] = useState(false);
   const [paymentStatus, setPaymentStatus] = useState<'idle' | 'paying' | 'success' | 'failed'>('idle');
@@ -39,16 +39,14 @@ export default function Checkout({ items, onBack, onSuccess, onShowLogin, onShow
   const [orderId, setOrderId] = useState('');
   const lastOrderId = React.useRef<string>('');
   const [showAddressManagement, setShowAddressManagement] = useState(false);
-  const [showPhoneBindingPrompt, setShowPhoneBindingPrompt] = useState(false);
-  const [showIdAuthNeeded, setShowIdAuthNeeded] = useState(false);
   const [showEmployeeAuthNeeded, setShowEmployeeAuthNeeded] = useState(false);
   const { updateUser } = useAuth();
 
   const defaultAddress = userInfo?.addresses.find(a => a.isDefault) || userInfo?.addresses[0];
-  const totalPrice = items.reduce((sum, item) => sum + (item.isPointsOnly ? 0 : item.price * item.quantity), 0);
-  const totalPoints = items.reduce((sum, item) => sum + (item.isPointsOnly ? (item.points || 0) * item.quantity : 0), 0);
+  const totalPrice = 0;
+  const totalPoints = items.reduce((sum, item) => sum + ((item.points || item.price || 0) * item.quantity), 0);
 
-  const isPurePoints = totalPoints > 0 && totalPrice === 0;
+  const isPurePoints = true;
 
   const handleSubmit = async (phoneOverride?: string) => {
     if (orderId) {
@@ -62,20 +60,9 @@ export default function Checkout({ items, onBack, onSuccess, onShowLogin, onShow
     }
 
     if (totalPoints > 0 && userInfo && userInfo.points < totalPoints) {
-      alert('您的积分余额不足，无法完成兑换');
-      return;
-    }
-
-    // Real-name Verification check
-    if (!userInfo?.isIdVerified) {
-      setShowIdAuthNeeded(true);
-      return;
-    }
-
-    // Phone binding check
-    const currentPhone = phoneOverride || userInfo?.phone;
-    if (!currentPhone) {
-      setShowPhoneBindingPrompt(true);
+      alert(`您的积分不足（完成此订单需要 ${totalPoints} 积分，当前仅有 ${userInfo.points} 积分），点击确定去购买积分`);
+      setShowBuyPoints(true);
+      onBack();
       return;
     }
 
@@ -258,14 +245,10 @@ export default function Checkout({ items, onBack, onSuccess, onShowLogin, onShow
                   </span>
                   <span className="text-xs text-gray-500">x{item.quantity}</span>
                 </div>
-                {item.isPointsOnly ? (
-                  <div className="flex items-center gap-0.5 text-donghai font-bold text-sm">
-                    <Coins className="w-3.5 h-3.5" />
-                    <span>{item.points}</span>
-                  </div>
-                ) : (
-                  <div className="text-donghai font-bold text-sm">¥{item.price}</div>
-                )}
+                <div className="flex items-center gap-0.5 text-donghai font-bold text-sm">
+                  <Coins className="w-3.5 h-3.5" />
+                  <span>{item.points || item.price} 积分</span>
+                </div>
               </div>
             </div>
           ))}
@@ -274,31 +257,21 @@ export default function Checkout({ items, onBack, onSuccess, onShowLogin, onShow
         {/* Summary Section */}
         <Card className="p-4 border-none shadow-sm bg-white rounded-2xl space-y-3">
           <div className="flex items-center justify-between text-xs">
-            <span className="text-gray-500">商品总额</span>
-            <div className="flex flex-col items-end">
-              {totalPrice > 0 && <span className="text-gray-800 font-medium">¥{totalPrice}</span>}
-              {totalPoints > 0 && (
-                <div className="flex items-center gap-0.5 text-donghai font-bold">
-                  <Coins className="w-3 h-3" />
-                  <span>{totalPoints}</span>
-                </div>
-              )}
+            <span className="text-gray-500">商品总计</span>
+            <div className="flex items-center gap-0.5 text-donghai font-bold">
+              <Coins className="w-3 h-3" />
+              <span>{totalPoints} 积分</span>
             </div>
           </div>
           <div className="flex items-center justify-between text-xs">
             <span className="text-gray-500">运费</span>
-            <span className="text-gray-800 font-medium">¥0.00</span>
+            <span className="text-donghai font-bold text-xs">免运费</span>
           </div>
           <div className="border-t pt-3 flex items-center justify-between">
             <span className="text-sm font-bold text-gray-800">合计</span>
-            <div className="flex flex-col items-end">
-              {totalPrice > 0 && <span className="text-donghai font-bold text-lg">¥{totalPrice}</span>}
-              {totalPoints > 0 && (
-                <div className="flex items-center gap-0.5 text-donghai font-bold text-lg">
-                  <Coins className="w-4 h-4" />
-                  <span>{totalPoints}</span>
-                </div>
-              )}
+            <div className="flex items-center gap-0.5 text-donghai font-bold text-lg">
+              <Coins className="w-4 h-4" />
+              <span>{totalPoints} 积分</span>
             </div>
           </div>
         </Card>
@@ -444,92 +417,6 @@ export default function Checkout({ items, onBack, onSuccess, onShowLogin, onShow
               <div className="mt-4 flex items-center justify-center gap-1 text-[10px] text-gray-400">
                 <ShieldCheck className="w-3 h-3" />
                 支付安全由微信支付提供保障
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
-
-      {/* Phone Binding Prompt Modal */}
-      <AnimatePresence>
-        {showPhoneBindingPrompt && (
-          <div className="fixed inset-0 z-[200] flex items-center justify-center px-6">
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setShowPhoneBindingPrompt(false)}
-              className="absolute inset-0 bg-black/40 backdrop-blur-sm"
-            />
-            <motion.div 
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              className="relative bg-white rounded-[32px] p-6 w-full max-w-xs text-center shadow-2xl"
-            >
-              <div className="w-16 h-16 bg-donghai/5 rounded-full flex items-center justify-center mx-auto mb-4">
-                <ShieldCheck className="w-8 h-8 text-donghai" />
-              </div>
-              <h3 className="text-lg font-bold text-gray-800 mb-2">提示</h3>
-              <p className="text-xs text-gray-500 mb-6 leading-relaxed">为了账户安全和联系顺畅，购买前请先完成手机号绑定。</p>
-              <Button 
-                className="w-full bg-donghai text-white rounded-full h-11 font-bold"
-                onClick={() => {
-                  setShowPhoneBindingPrompt(false);
-                  onShowLogin('phone');
-                }}
-              >
-                我知道了
-              </Button>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
-
-      {/* Real-name Auth Required Modal */}
-      <AnimatePresence>
-        {showIdAuthNeeded && (
-          <div className="absolute inset-0 z-[200] flex items-center justify-center px-6">
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setShowIdAuthNeeded(false)}
-              className="absolute inset-0 bg-black/40 backdrop-blur-sm"
-            />
-            <motion.div 
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              className="relative bg-white rounded-[32px] p-6 w-full max-w-xs text-center shadow-2xl"
-            >
-              <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4">
-                <UserCircle className="w-8 h-8 text-blue-500" />
-              </div>
-              <h3 className="text-lg font-bold text-gray-800 mb-2">提示</h3>
-              <p className="text-xs text-gray-500 mb-6 leading-relaxed">根据相关规定，您需要先完成实名认证后方可进行交易。</p>
-              <div className="flex gap-3">
-                <Button 
-                  variant="outline"
-                  className="flex-1 rounded-full h-11 font-bold border-gray-200 text-gray-600"
-                  onClick={() => {
-                    setShowIdAuthNeeded(false);
-                    const event = new CustomEvent('navigate-id-auth');
-                    window.dispatchEvent(event);
-                  }}
-                >
-                  我知道了
-                </Button>
-                <Button 
-                  className="flex-1 bg-donghai text-white rounded-full h-11 font-bold"
-                  onClick={() => {
-                    setShowIdAuthNeeded(false);
-                    const event = new CustomEvent('navigate-id-auth');
-                    window.dispatchEvent(event);
-                  }}
-                >
-                  去认证
-                </Button>
               </div>
             </motion.div>
           </div>

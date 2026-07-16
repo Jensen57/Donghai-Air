@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ShoppingCart, Search, Star, ChevronRight, Flame, Zap, Clock, ShoppingBag, Bell, ShieldCheck, Coins, User, ShieldAlert, Plane } from 'lucide-react';
+import { ShoppingCart, Search, Star, ChevronRight, ShoppingBag, Bell, ShieldCheck, Coins, User, ShieldAlert, Plane } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import SearchPage from './SearchPage';
 import ProductDetail, { Product } from './ProductDetail';
@@ -28,7 +28,6 @@ export default function Mall({ onCheckout, onShowCompensation, onShowEmployeeAut
   const [showSearch, setShowSearch] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [activeCategory, setActiveCategory] = useState("全部");
-  const [activeFilter, setActiveFilter] = useState<string | null>(null);
   const [currentBanner, setCurrentBanner] = useState(0);
 
   const BANNERS = [
@@ -55,7 +54,6 @@ export default function Mall({ onCheckout, onShowCompensation, onShowEmployeeAut
   const { userInfo } = useAuth();
 
   const handleCategoryClick = (cat: string) => {
-    setActiveFilter(null);
     if (cat === "积分兑换") {
       if (!userInfo) {
         onShowLogin();
@@ -126,17 +124,6 @@ export default function Mall({ onCheckout, onShowCompensation, onShowEmployeeAut
 
   const filteredProducts = (() => {
     let list = DETAILED_PRODUCTS;
-    
-    if (activeFilter) {
-      if (activeFilter === '热门爆款') {
-        list = [...list].sort((a, b) => b.sales - a.sales);
-      } else if (activeFilter === '新品上市') {
-        // For simulation, we'll take items with specific tags or just recent IDs
-        list = list.filter(p => !p.tag?.includes('推荐') || p.id === '7' || p.id === '4');
-      } else if (activeFilter === '限时优惠') {
-        list = list.filter(p => p.originalPrice && p.originalPrice > p.price);
-      }
-    }
     
     if (activeCategory !== "全部") {
       list = list.filter(p => p.category === activeCategory);
@@ -223,27 +210,6 @@ export default function Mall({ onCheckout, onShowCompensation, onShowEmployeeAut
           </div>
         </div>
 
-        {/* Quick Entry (Not Sticky anymore) */}
-        <div className="grid grid-cols-3 gap-3 px-4 py-3 bg-gray-50/95">
-          {[
-            { icon: Flame, label: '热门爆款', color: 'text-orange-500', bg: 'bg-orange-50' },
-            { icon: Zap, label: '新品上市', color: 'text-blue-500', bg: 'bg-blue-50' },
-            { icon: Clock, label: '限时优惠', color: 'text-red-500', bg: 'bg-red-50' },
-          ].map((item, i) => (
-            <div 
-              key={i} 
-              onClick={() => {
-                setActiveFilter(item.label === activeFilter ? null : item.label);
-                setActiveCategory("全部");
-              }}
-              className={`${item.bg} rounded-xl p-2 flex flex-col items-center gap-0.5 shadow-sm cursor-pointer transition-all active:scale-95 border border-transparent ${activeFilter === item.label ? 'border-donghai/30 bg-white shadow-md scale-105 z-10' : ''}`}
-            >
-              <item.icon className={`w-4 h-4 ${item.color}`} />
-              <span className="text-[9px] font-bold text-gray-700">{item.label}</span>
-            </div>
-          ))}
-        </div>
-
         {/* Categories Tab Bar - Sticky below header */}
         <div className="sticky top-[128px] z-40 bg-white shadow-[0_4px_10px_rgba(0,0,0,0.02)] border-b border-gray-100">
           <div className="flex items-center gap-6 px-4 pb-2 pt-2 overflow-x-auto no-scrollbar">
@@ -290,8 +256,8 @@ export default function Mall({ onCheckout, onShowCompensation, onShowEmployeeAut
                   {product.name}
                 </h3>
                 <div className="flex items-baseline gap-0.5 mt-auto">
-                  <span className="text-[#e02e24] font-bold text-[10px]">¥</span>
-                  <span className="text-[#e02e24] font-bold text-[15px] leading-none">{product.price}</span>
+                  <span className="text-[#e02e24] font-bold text-[14px] leading-none">{product.points || product.price}</span>
+                  <span className="text-[#e02e24] text-[9px] ml-0.5 font-medium">积分</span>
                   <span className="text-[10px] text-gray-400 ml-1">已拼{product.sales > 1000 ? Math.floor(product.sales/1000) + '万+' : product.sales}件</span>
                 </div>
               </div>
