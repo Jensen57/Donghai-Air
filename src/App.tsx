@@ -18,6 +18,7 @@ import CustomerService from './components/CustomerService';
 import MessageCenter from './components/MessageCenter';
 import MiniProgramCapsule from './components/MiniProgramCapsule';
 import HelpCenter from './components/HelpCenter';
+import Settings from './components/Settings';
 import WeChatHome from './components/wechat/WeChatHome';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { Headphones, Bell, X } from 'lucide-react';
@@ -97,6 +98,7 @@ function AppContent() {
   const [showLogin, setShowLogin] = useState(false);
   const [loginStep, setLoginStep] = useState<'auth' | 'phone'>('auth');
   const [showCustomerService, setShowCustomerService] = useState(false);
+  const [mallCategory, setMallCategory] = useState<string | undefined>(undefined);
 
   const triggerLogin = (step: any = 'auth') => {
     const finalStep = (step === 'auth' || step === 'phone') ? step : 'auth';
@@ -112,6 +114,15 @@ function AppContent() {
   // targetOrderId is for navigating to specific order from message center
   const [targetOrderId, setTargetOrderId] = useState<string | undefined>(undefined);
   const [initialSettingSubPage, setInitialSettingSubPage] = useState<string | null>(null);
+  const [showSettings, setShowSettings] = useState(false);
+  const [pendingCheckoutPay, setPendingCheckoutPay] = useState<boolean>(false);
+  const [autoOpenPasswordInput, setAutoOpenPasswordInput] = useState<boolean>(false);
+
+  React.useEffect(() => {
+    if (initialSettingSubPage) {
+      setShowSettings(true);
+    }
+  }, [initialSettingSubPage]);
 
   React.useEffect(() => {
     const handleNavigateIdAuth = () => {
@@ -223,10 +234,21 @@ function AppContent() {
             onShowLogin={triggerLogin}
             onTabChange={handleTabChange}
             onShowCustomerService={handleOpenCustomerService}
+            initialCategory={mallCategory}
+            onClearInitialCategory={() => setMallCategory(undefined)}
           />
         );
       case 'cart':
-        return <Cart onBack={() => handleTabChange('mall')} onCheckout={handleCheckout} onShowLogin={triggerLogin} />;
+        return (
+          <Cart 
+            onBack={() => handleTabChange('mall')} 
+            onCheckout={handleCheckout} 
+            onShowLogin={triggerLogin} 
+            onTabChange={handleTabChange}
+            onShowCustomerService={handleOpenCustomerService}
+            onShowEmployeeAuth={() => setShowEmployeeAuth(true)}
+          />
+        );
       case 'orders':
         return (
           <Orders 
@@ -237,6 +259,11 @@ function AppContent() {
               setActiveTab(prevTab);
               setPrevTab(null);
             } : undefined}
+            onCheckout={handleCheckout}
+            onTabChange={handleTabChange}
+            onShowLogin={triggerLogin}
+            onShowCustomerService={handleOpenCustomerService}
+            onShowEmployeeAuth={() => setShowEmployeeAuth(true)}
           />
         );
       case 'profile':
@@ -253,8 +280,11 @@ function AppContent() {
             onShowPointsMall={() => setShowPointsMall(true)}
             onShowLogin={triggerLogin}
             onShowCustomerService={handleOpenCustomerService}
-            initialSettingSubPage={initialSettingSubPage}
-            clearInitialSettingSubPage={clearInitialSettingSubPage}
+            onShowSettings={() => setShowSettings(true)}
+            onShowPayPassword={() => {
+              setInitialSettingSubPage('payPassword');
+              setShowSettings(true);
+            }}
           />
         );
       default:
@@ -269,6 +299,8 @@ function AppContent() {
             onShowLogin={triggerLogin}
             onTabChange={handleTabChange}
             onShowCustomerService={handleOpenCustomerService}
+            initialCategory={mallCategory}
+            onClearInitialCategory={() => setMallCategory(undefined)}
           />
         );
     }
@@ -300,35 +332,45 @@ function AppContent() {
               <MiniProgramCapsule onMinimize={handleMinimize} onClose={handleClose} />
               <NotificationToast onClick={() => setShowMessages(true)} />
             
-            {/* Global Customer Service Button */}
-            {!showCheckout && !afterSalesInfo && !showCompensation && !showEmployeeAuth && !showEmployeeMall && !showInternalOrders && !showBuyPoints && !showPointsMall && !showPointsCenter && !showMessages && (
-              <motion.div 
-                drag
-                dragMomentum={false}
-                dragConstraints={constraintsRef}
-                onClick={handleOpenCustomerService}
-                className="absolute top-24 right-4 z-[100] w-12 h-12 rounded-full bg-white/90 backdrop-blur-md shadow-2xl flex items-center justify-center cursor-move active:scale-95 transition-transform border border-donghai/20"
-              >
-                <Headphones className="w-6 h-6 text-donghai" />
-                <div className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full border-2 border-white flex items-center justify-center">
-                  <span className="text-[8px] text-white font-bold">1</span>
-                </div>
-              </motion.div>
-            )}
-
             {showCheckout ? (
               <Checkout 
                 items={checkoutItems} 
-                onBack={() => setShowCheckout(false)} 
-                onSuccess={handleCheckoutSuccess} 
+                onBack={() => {
+                  setShowCheckout(false);
+                  setAutoOpenPasswordInput(false);
+                }} 
+                onSuccess={() => {
+                  setAutoOpenPasswordInput(false);
+                  handleCheckoutSuccess();
+                }} 
                 onShowLogin={triggerLogin}
                 onShowEmployeeAuth={() => setShowEmployeeAuth(true)}
+                onShowPayPassword={() => {
+                  setPendingCheckoutPay(true);
+                  setShowCheckout(false);
+                  setInitialSettingSubPage('payPassword');
+                  setShowSettings(true);
+                }}
+                autoOpenPasswordInput={autoOpenPasswordInput}
               />
             ) : showHelpCenter ? (
               <HelpCenter onBack={() => {
                 setShowHelpCenter(false);
                 setHelpCenterQuery('');
               }} initialSearch={helpCenterQuery} />
+            ) : showSettings ? (
+              <Settings 
+                onBack={() => {
+                  setShowSettings(false);
+                  setInitialSettingSubPage(null);
+                  if (pendingCheckoutPay) {
+                    setPendingCheckoutPay(false);
+                    setAutoOpenPasswordInput(true);
+                    setShowCheckout(true);
+                  }
+                }} 
+                initialSubPage={initialSettingSubPage} 
+              />
             ) : afterSalesInfo ? (
               <AfterSales 
                 orderId={afterSalesInfo.orderId} 
@@ -338,7 +380,14 @@ function AppContent() {
             ) : showCompensation ? (
               <Compensation onBack={() => setShowCompensation(false)} />
             ) : showEmployeeAuth ? (
-              <EmployeeAuth onBack={() => setShowEmployeeAuth(false)} />
+              <EmployeeAuth 
+                onBack={() => setShowEmployeeAuth(false)} 
+                onShowEmployeeMall={() => {
+                  setShowEmployeeAuth(false);
+                  setMallCategory('员工专区');
+                  handleTabChange('mall');
+                }}
+              />
             ) : showMessages ? (
               <MessageCenter 
                 onBack={() => setShowMessages(false)} 
@@ -365,6 +414,11 @@ function AppContent() {
                 onApplyAfterSales={handleApplyAfterSales} 
                 onBack={() => setShowInternalOrders(false)}
                 isInternalOnly={true} 
+                onCheckout={handleCheckout}
+                onTabChange={handleTabChange}
+                onShowLogin={triggerLogin}
+                onShowCustomerService={handleOpenCustomerService}
+                onShowEmployeeAuth={() => setShowEmployeeAuth(true)}
               />
             ) : showBuyPoints ? (
               <BuyPoints onBack={() => setShowBuyPoints(false)} />
@@ -379,8 +433,6 @@ function AppContent() {
             ) : showPointsCenter ? (
               <PointsCenter 
                 onBack={() => setShowPointsCenter(false)} 
-                onShowBuyPoints={() => setShowBuyPoints(true)}
-                onShowPointsMall={() => setShowPointsMall(true)}
               />
             ) : (
               <>
@@ -394,11 +446,6 @@ function AppContent() {
             <CustomerService 
               isOpen={showCustomerService} 
               onClose={() => setShowCustomerService(false)} 
-              onOpenHelp={(query) => {
-                setShowCustomerService(false);
-                setHelpCenterQuery(query || '');
-                setShowHelpCenter(true);
-              }}
             />
           </motion.div>
           )}

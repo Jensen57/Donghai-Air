@@ -17,25 +17,58 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { useAuth } from '../context/AuthContext';
 import AddressManagement from './AddressManagement';
+import ProductDetail, { Product } from './ProductDetail';
+import { DETAILED_PRODUCTS, POINTS_PRODUCTS, INTERNAL_PRODUCTS } from '../constants';
 
-export default function Cart({ onBack, onCheckout, onShowLogin }: { onBack: () => void, onCheckout: (selectedItems: any[]) => void, onShowLogin: () => void }) {
+export default function Cart({ 
+  onBack, 
+  onCheckout, 
+  onShowLogin,
+  onTabChange,
+  onShowCustomerService,
+  onShowEmployeeAuth
+}: { 
+  onBack: () => void, 
+  onCheckout: (selectedItems: any[]) => void, 
+  onShowLogin: () => void,
+  onTabChange: (tab: any) => void,
+  onShowCustomerService: () => void,
+  onShowEmployeeAuth?: () => void
+}) {
   const { isLoggedIn, userInfo, updateCartQuantity, removeFromCart, clearCart } = useAuth();
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [activeTab, setActiveTab] = useState<'all' | 'normal' | 'points' | 'internal'>('all');
   const [showAddressManagement, setShowAddressManagement] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 
   const cartItems = userInfo?.cart || [];
-  
-  const filteredItems = cartItems.filter(item => {
-    if (activeTab === 'normal') return !item.isPointsOnly && !item.productId.startsWith('emp-');
-    if (activeTab === 'points') return item.isPointsOnly;
-    if (activeTab === 'internal') return item.productId.startsWith('emp-');
-    return true;
-  });
+  const filteredItems = cartItems;
 
-  const normalItems = filteredItems.filter(item => !item.isPointsOnly && !item.productId.startsWith('emp-'));
-  const pointsItems = filteredItems.filter(item => item.isPointsOnly);
-  const internalItems = filteredItems.filter(item => item.productId.startsWith('emp-'));
+  const handleProductClick = (cartItem: any) => {
+    const allProducts = [...DETAILED_PRODUCTS, ...POINTS_PRODUCTS, ...INTERNAL_PRODUCTS];
+    let matchedProduct = allProducts.find(p => p.id === cartItem.productId);
+    
+    if (!matchedProduct) {
+      matchedProduct = {
+        id: cartItem.productId || cartItem.id,
+        name: cartItem.name,
+        images: [cartItem.image],
+        price: cartItem.price || 0,
+        points: cartItem.points,
+        isPointsOnly: cartItem.isPointsOnly,
+        sales: 100,
+        rating: 98,
+        stock: 99,
+        description: "暂无详细描述",
+        specs: cartItem.specs ? Object.keys(cartItem.specs).map(key => ({
+          label: key,
+          options: [cartItem.specs[key]]
+        })) : [],
+        afterSales: "支持7天无理由退换。",
+        category: "其它"
+      };
+    }
+    setSelectedProduct(matchedProduct);
+  };
 
   const toggleSelect = (id: string) => {
     setSelectedIds(prev => 
@@ -52,12 +85,7 @@ export default function Cart({ onBack, onCheckout, onShowLogin }: { onBack: () =
   };
 
   const selectedItems = cartItems.filter(item => selectedIds.includes(item.id));
-  const hasNormalSelected = selectedItems.some(item => !item.isPointsOnly && !item.productId.startsWith('emp-'));
-  const hasPointsSelected = selectedItems.some(item => item.isPointsOnly);
-  const hasInternalSelected = selectedItems.some(item => item.productId.startsWith('emp-'));
-  
   const isMixedSelection = false;
-
   const totalPrice = 0;
 
   const totalPoints = selectedItems
@@ -68,12 +96,6 @@ export default function Cart({ onBack, onCheckout, onShowLogin }: { onBack: () =
       onShowLogin();
       return;
     }
-    
-    if (isMixedSelection) {
-      alert('不同类型的商品（普通、积分、内购）不能同时结算，请分别选择');
-      return;
-    }
-    
     onCheckout(selectedItems);
   };
 
@@ -90,66 +112,99 @@ export default function Cart({ onBack, onCheckout, onShowLogin }: { onBack: () =
     setShowDeleteConfirm(false);
   };
 
+  const showBatchDeleteBtn = (selectedIds.length === filteredItems.length && filteredItems.length > 0) || selectedIds.length >= 2;
+
   const renderCartItem = (item: any) => (
-    <Card key={item.id} className="p-3 border-none shadow-sm flex gap-3 relative overflow-hidden">
-      <div 
-        className={`w-5 h-5 rounded-full border flex items-center justify-center mt-8 transition-colors ${selectedIds.includes(item.id) ? 'bg-donghai border-donghai' : 'border-gray-300'}`}
-        onClick={() => toggleSelect(item.id)}
-      >
-        {selectedIds.includes(item.id) && <Check className="w-3 h-3 text-white" />}
+    <div 
+      key={item.id} 
+      className="p-3 bg-white rounded-2xl border border-gray-100/80 shadow-sm flex flex-row items-start gap-2 relative transition-all hover:shadow-md"
+    >
+      {/* 1. 选项框放在最左侧，更紧凑，绝不遮挡图片 */}
+      <div className="flex-shrink-0 pt-1.5 -mr-1.5">
+        <div 
+          className={`w-4 h-4 rounded-full border flex items-center justify-center transition-all cursor-pointer shadow-sm ${
+            selectedIds.includes(item.id) 
+              ? 'bg-donghai border-donghai shadow-donghai/10' 
+              : 'border-gray-300 bg-white hover:border-gray-400'
+          }`}
+          onClick={() => toggleSelect(item.id)}
+        >
+          {selectedIds.includes(item.id) && <Check className="w-2.5 h-2.5 text-white stroke-[3.5px]" />}
+        </div>
+      </div>
+
+      {/* 2. 商品图片放在左侧 */}
+      <div className="flex-shrink-0 cursor-pointer" onClick={() => handleProductClick(item)}>
+        <img 
+          src={item.image} 
+          alt={item.name} 
+          className="w-16 h-16 rounded-xl object-cover bg-gray-50 border border-gray-100 hover:opacity-90 active:scale-95 transition-all"
+          referrerPolicy="no-referrer"
+        />
       </div>
       
-      <img 
-        src={item.image} 
-        alt={item.name} 
-        className="w-20 h-20 rounded-lg object-cover bg-gray-50"
-        referrerPolicy="no-referrer"
-      />
-      
-      <div className="flex-1 flex flex-col justify-between py-0.5">
-        <div>
-          <h3 className="text-xs font-medium text-gray-800 line-clamp-1">{item.name}</h3>
-          <div className="flex flex-wrap gap-1 mt-1">
-            {Object.entries(item.specs).map(([label, val]) => (
-              <span key={label} className="text-[10px] text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">
-                {val}
-              </span>
-            ))}
-          </div>
+      {/* 3. 商品名称、售价和数量控制 均放在图片的右侧 */}
+      <div className="flex-1 flex flex-col justify-between min-w-0 h-16 py-0.5">
+        <div className="cursor-pointer" onClick={() => handleProductClick(item)}>
+          <h3 className="text-xs font-bold text-gray-800 line-clamp-1 text-left leading-tight pr-6 hover:text-donghai transition-colors">
+            {item.name}
+          </h3>
         </div>
         
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-0.5 text-donghai font-bold text-sm">
+        <div className="flex items-center justify-between mt-auto">
+          <div className="flex items-center gap-0.5 text-donghai font-extrabold text-xs">
             <Coins className="w-3.5 h-3.5" />
             <span>{item.points || item.price} 积分</span>
           </div>
-          <div className="flex items-center gap-3 bg-gray-50 rounded-full px-2 py-0.5">
+          
+          <div className="flex items-center gap-1.5 bg-gray-50/80 rounded-lg p-0.5 border border-gray-100/60">
             <button 
-              className="w-6 h-6 flex items-center justify-center text-gray-400 disabled:opacity-30"
+              className="w-5 h-5 flex items-center justify-center text-gray-500 disabled:opacity-35 hover:bg-gray-200/50 rounded-md transition-all active:scale-95"
               disabled={item.quantity <= 1}
               onClick={() => updateCartQuantity(item.id, item.quantity - 1)}
             >
-              <Minus className="w-3 h-3" />
+              <Minus className="w-2.5 h-2.5 stroke-[2.5]" />
             </button>
-            <span className="text-xs font-bold w-4 text-center">{item.quantity}</span>
+            <span className="text-xs font-bold w-5 text-center text-gray-800 font-mono">{item.quantity}</span>
             <button 
-              className="w-6 h-6 flex items-center justify-center text-gray-400"
+              className="w-5 h-5 flex items-center justify-center text-gray-500 hover:bg-gray-200/50 rounded-md transition-all active:scale-95"
               onClick={() => updateCartQuantity(item.id, item.quantity + 1)}
             >
-              <Plus className="w-3 h-3" />
+              <Plus className="w-2.5 h-2.5 stroke-[2.5]" />
             </button>
           </div>
         </div>
       </div>
 
+      {/* 删除按钮 */}
       <button 
-        className="absolute top-2 right-2 p-1 text-gray-300 hover:text-red-500"
+        className="absolute top-3 right-3 p-1 text-gray-300 hover:text-red-500 hover:bg-red-50/50 rounded-lg transition-all active:scale-95"
         onClick={() => removeFromCart(item.id)}
       >
-        <Trash2 className="w-4 h-4" />
+        <Trash2 className="w-3.5 h-3.5" />
       </button>
-    </Card>
+    </div>
   );
+
+  if (selectedProduct) {
+    return (
+      <ProductDetail 
+        product={selectedProduct} 
+        onBack={() => setSelectedProduct(null)}
+        onCheckout={(items) => {
+          setSelectedProduct(null);
+          onCheckout(items);
+        }}
+        onShowLogin={onShowLogin}
+        onTabChange={(tab) => {
+          setSelectedProduct(null);
+          onTabChange(tab);
+        }}
+        onShowCustomerService={onShowCustomerService}
+        onShowEmployeeAuth={onShowEmployeeAuth}
+      />
+    );
+  }
 
   if (showAddressManagement) {
     return <AddressManagement onBack={() => setShowAddressManagement(false)} />;
@@ -157,85 +212,34 @@ export default function Cart({ onBack, onCheckout, onShowLogin }: { onBack: () =
 
   return (
     <div className="flex flex-col h-full bg-gray-50">
-      {/* Header */}
-      <div className="bg-white px-4 pt-12 pb-0 sticky top-0 z-50 border-b">
-        <div className="flex items-center justify-between mb-4">
+        {/* Header */}
+      <div className="bg-white px-4 pt-12 pb-4 sticky top-0 z-50 border-b">
+        <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <ChevronLeft className="w-6 h-6 cursor-pointer" onClick={onBack} />
             <h1 className="text-lg font-bold">购物车 ({cartItems.length})</h1>
           </div>
           {cartItems.length > 0 && (
-            <div className="flex gap-4">
-              <span className="text-sm text-red-500" onClick={handleBatchDelete}>
-                批量删除
-              </span>
-              <span className="text-sm text-gray-500" onClick={toggleSelectAll}>
+            <div className="flex items-center gap-4">
+              {showBatchDeleteBtn && (
+                <button className="text-sm text-gray-500 font-medium active:opacity-75 transition-opacity" onClick={handleBatchDelete}>
+                  批量删除
+                </button>
+              )}
+              <button className="text-sm text-gray-500 font-medium active:opacity-75 transition-opacity" onClick={toggleSelectAll}>
                 {selectedIds.length === filteredItems.length ? '取消全选' : '全选'}
-              </span>
+              </button>
             </div>
           )}
         </div>
-        
-        {/* Tabs */}
-        <div className="flex gap-6 px-2 overflow-x-auto no-scrollbar">
-          {[
-            { id: 'all', label: '全部' },
-            { id: 'normal', label: '普通商品' },
-            { id: 'points', label: '积分换购' },
-            ...(userInfo?.isEmployee ? [{ id: 'internal', label: '内购专区' }] : [])
-          ].map(tab => (
-            <div 
-              key={tab.id}
-              onClick={() => {
-                setActiveTab(tab.id as any);
-                setSelectedIds([]);
-              }}
-              className={`pb-3 text-sm transition-all relative ${activeTab === tab.id ? 'text-donghai font-bold' : 'text-gray-500'}`}
-            >
-              {tab.label}
-              {activeTab === tab.id && (
-                <motion.div 
-                  layoutId="cartTab"
-                  className="absolute bottom-0 left-0 right-0 h-0.5 bg-donghai"
-                />
-              )}
-            </div>
-          ))}
-        </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-6 pb-32">
-        {activeTab !== 'points' && normalItems.length > 0 && (
-          <div className="space-y-3">
-            <div className="flex items-center gap-2 px-1">
-              <ShoppingCart className="w-4 h-4 text-donghai" />
-              <h2 className="text-xs font-bold text-gray-800">普通商品</h2>
-            </div>
-            {normalItems.map(renderCartItem)}
+      <div className="flex-1 overflow-y-auto p-3.5 space-y-2 pb-32">
+        {filteredItems.length > 0 ? (
+          <div className="space-y-2">
+            {filteredItems.map(renderCartItem)}
           </div>
-        )}
-
-        {activeTab !== 'normal' && pointsItems.length > 0 && (
-          <div className="space-y-3">
-            <div className="flex items-center gap-2 px-1">
-              <Coins className="w-4 h-4 text-orange-500" />
-              <h2 className="text-xs font-bold text-gray-800">积分换购</h2>
-            </div>
-            {pointsItems.map(renderCartItem)}
-          </div>
-        )}
-
-        {activeTab !== 'normal' && activeTab !== 'points' && internalItems.length > 0 && (
-          <div className="space-y-3">
-            <div className="flex items-center gap-2 px-1">
-              <AlertCircle className="w-4 h-4 text-blue-500" />
-              <h2 className="text-xs font-bold text-gray-800">内购专区</h2>
-            </div>
-            {internalItems.map(renderCartItem)}
-          </div>
-        )}
-
-        {filteredItems.length === 0 && (
+        ) : (
           <div className="flex flex-col items-center justify-center py-20 text-gray-400">
             <ShoppingCart className="w-16 h-16 mb-4 opacity-10" />
             <p className="text-sm">暂无相关商品</p>

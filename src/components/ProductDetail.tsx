@@ -352,14 +352,6 @@ export default function ProductDetail({
               <span>{product.points || currentPrice}</span>
               <span className="text-xs font-normal text-gray-500 ml-1">积分</span>
             </div>
-            {product.originalPrice && (
-              <span className="text-sm text-gray-400 line-through">{(product.originalPrice * 10) || ((product.points || currentPrice) * 1.5)} 积分</span>
-            )}
-            {product.tag && (
-              <Badge className="bg-donghai/10 text-donghai text-[10px] border-none ml-2">
-                {product.tag}
-              </Badge>
-            )}
             {product.isInternal && (
               <Badge className="bg-blue-500 text-white text-[10px] border-none ml-2">
                 员工内购
@@ -391,13 +383,10 @@ export default function ProductDetail({
             </div>
           )}
           <h1 className="text-lg font-bold text-gray-800 leading-tight">{product.name}</h1>
-          <div className="text-xs text-gray-400">
-            <span>库存 {product.stock}</span>
-          </div>
         </div>
 
         {/* Service Section */}
-        <div className="mt-2 bg-white p-4 space-y-4">
+        <div className="mt-2 bg-white p-4">
           <div className="flex items-center justify-between text-xs">
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-1 text-gray-500">
@@ -409,34 +398,11 @@ export default function ProductDetail({
                 <span>极速发货</span>
               </div>
             </div>
-            <ChevronRight className="w-4 h-4 text-gray-300" />
-          </div>
-          <div className="border-t pt-4">
-            <div className="text-xs font-bold text-gray-800 mb-2">售后说明</div>
-            <p className="text-[11px] text-gray-500 leading-relaxed">{product.afterSales}</p>
           </div>
         </div>
 
         {/* Specs Section */}
         <div className="mt-2 bg-white p-4 space-y-6">
-          {product.specs.map((spec, i) => (
-            <div key={i}>
-              <div className="text-xs font-bold text-gray-800 mb-3">{spec.label}</div>
-              <div className="flex flex-wrap gap-2">
-                {spec.options.map(opt => (
-                  <Button
-                    key={opt}
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setSelectedSpecs(prev => ({ ...prev, [spec.label]: opt }))}
-                    className={`rounded-lg text-xs h-8 px-4 border-gray-100 ${selectedSpecs[spec.label] === opt ? 'bg-donghai text-white border-donghai' : 'bg-gray-50 text-gray-600'}`}
-                  >
-                    {opt}
-                  </Button>
-                ))}
-              </div>
-            </div>
-          ))}
           <div>
             <div className="text-xs font-bold text-gray-800 mb-3">购买数量</div>
             <div className="flex items-center gap-4 bg-gray-50 w-fit rounded-full px-2 py-1">
@@ -490,14 +456,6 @@ export default function ProductDetail({
             <MessageCircle className="w-5 h-5 text-gray-500" />
             <span className="text-[9px] text-gray-500">客服</span>
           </div>
-          <div className="flex flex-col items-center gap-1 cursor-pointer" onClick={handleFavorite}>
-            {isFavoriting ? (
-              <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
-            ) : (
-              <Heart className={`w-5 h-5 ${isFavorite ? 'fill-red-500 text-red-500' : 'text-gray-500'}`} />
-            )}
-            <span className="text-[9px] text-gray-500">收藏</span>
-          </div>
           <div className="flex flex-col items-center gap-1 cursor-pointer relative" onClick={() => {
             onBack();
             onTabChange('cart');
@@ -520,7 +478,7 @@ export default function ProductDetail({
                 onClick={handleAddToCart}
                 className="flex-1 rounded-full border-donghai text-donghai h-11 font-bold"
               >
-                {isAddingToCart ? <Loader2 className="w-4 h-4 animate-spin" /> : '加入兑换车'}
+                {isAddingToCart ? <Loader2 className="w-4 h-4 animate-spin" /> : '加入购物车'}
               </Button>
               <Button 
                 onClick={handleBuyNow}
@@ -591,20 +549,7 @@ export default function ProductDetail({
         )}
       </AnimatePresence>
 
-      {/* Favorite Toast */}
-      <AnimatePresence>
-        {showFavoriteToast && (
-          <motion.div 
-            initial={{ opacity: 0, y: 20, x: '-50%' }}
-            animate={{ opacity: 1, y: 0, x: '-50%' }}
-            exit={{ opacity: 0, y: 20, x: '-50%' }}
-            className="absolute bottom-24 left-1/2 z-[200] bg-black/80 backdrop-blur-md text-white px-6 py-3 rounded-full flex items-center gap-2"
-          >
-            <Heart className="w-4 h-4 text-red-500 fill-current" />
-            <span className="text-xs font-bold">收藏成功</span>
-          </motion.div>
-        )}
-      </AnimatePresence>
+
 
       {/* Error Message Overlay */}
       <AnimatePresence>

@@ -100,16 +100,6 @@ export default function EditProfileModal({ isOpen, onClose }: EditProfileModalPr
                     placeholder="请输入昵称"
                   />
                 </div>
-                <div>
-                  <label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 block">手机号</label>
-                  <input 
-                    type="tel" 
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 11))}
-                    className="w-full bg-gray-50 border-none rounded-xl py-3 px-4 text-sm focus:ring-2 focus:ring-donghai outline-none"
-                    placeholder="请输入手机号"
-                  />
-                </div>
               </div>
 
               {/* Status Messages */}

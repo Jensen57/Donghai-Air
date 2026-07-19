@@ -72,8 +72,9 @@ export interface EmployeeAuthRecord {
   id: string;
   employeeId: string;
   name: string;
-  phone: string;
-  badgeImage: string;
+  phone?: string;
+  badgeImage?: string;
+  oaPassword?: string;
   status: EmployeeAuthStatus;
   auditOpinion?: string;
   auditTime?: string;
@@ -157,6 +158,8 @@ interface UserInfo {
   addresses: Address[];
   orders: Order[];
   afterSales: AfterSalesRecord[];
+  payPassword?: string;
+  paymentPassword?: string;
   compensations: CompensationRecord[];
   pointsRecords: PointsRecord[];
   messages: Message[];
@@ -194,6 +197,7 @@ interface AuthContextType {
   deleteAddress: (id: string) => void;
   addOrder: (order: Omit<Order, 'id' | 'createdAt' | 'status'>) => Promise<string>;
   updateOrderStatus: (orderId: string, status: OrderStatus) => Promise<void>;
+  deleteOrder: (orderId: string) => Promise<void>;
   applyAfterSales: (record: Omit<AfterSalesRecord, 'id' | 'status' | 'createdAt'>) => Promise<string>;
   updateAfterSalesStatus: (id: string, status: AfterSalesStatus, extra?: Partial<AfterSalesRecord>) => void;
   applyCompensation: (record: Omit<CompensationRecord, 'id' | 'status' | 'createdAt' | 'amount' | 'points'>) => Promise<string>;
@@ -607,6 +611,41 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
   };
 
+  const deleteOrder = async (orderId: string) => {
+    return new Promise<void>((resolve) => {
+      setUserInfo(prev => {
+        if (!prev) {
+          resolve();
+          return null;
+        }
+
+        const orderToDelete = prev.orders.find(o => o.id === orderId);
+        if (!orderToDelete) {
+          resolve();
+          return prev;
+        }
+
+        const orders = prev.orders.filter(o => o.id !== orderId);
+
+        const counts = { ...prev.orderCounts };
+        const status = orderToDelete.status;
+        if (status in counts) {
+          (counts as any)[status] = Math.max(0, (counts as any)[status] - 1);
+        }
+
+        const updated = {
+          ...prev,
+          orders,
+          orderCounts: counts
+        };
+
+        localStorage.setItem('donghai_user', JSON.stringify(updated));
+        resolve();
+        return updated;
+      });
+    });
+  };
+
   const applyAfterSales = async (record: Omit<AfterSalesRecord, 'id' | 'status' | 'createdAt'>) => {
     if (!userInfo) throw new Error('未登录');
     return new Promise<string>((resolve) => {
@@ -1004,7 +1043,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     <AuthContext.Provider value={{ 
       isLoggedIn, userInfo, login, logout, updateUser, showBuyPoints, setShowBuyPoints, setUnreadCount, toggleFavorite,
       addToCart, updateCartQuantity, removeFromCart, clearCart,
-      addAddress, updateAddress, deleteAddress, addOrder, updateOrderStatus,
+      addAddress, updateAddress, deleteAddress, addOrder, updateOrderStatus, deleteOrder,
       applyAfterSales, updateAfterSalesStatus,
       applyCompensation, updateCompensationStatus,
       applyEmployeeAuth, updateEmployeeAuthStatus,

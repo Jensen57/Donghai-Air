@@ -2,19 +2,31 @@ import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ShoppingCart, Search, Star, ChevronRight, ShoppingBag, Bell, ShieldCheck, Coins, User, ShieldAlert, Plane } from 'lucide-react';
+import { ShoppingCart, Search, Star, ChevronRight, ShoppingBag, Bell, ShieldCheck, User, ShieldAlert, Plane } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import SearchPage from './SearchPage';
 import ProductDetail, { Product } from './ProductDetail';
-import { DETAILED_PRODUCTS } from '../constants';
+import { DETAILED_PRODUCTS, INTERNAL_PRODUCTS } from '../constants';
 import Cart from './Cart';
 import Checkout from './Checkout';
 import { useAuth } from '../context/AuthContext';
 
 
-const CATEGORIES = ["全部", "咖啡饮品", "精选茗茶", "航空周边"];
+const CATEGORIES = ["全部", "咖啡饮品", "精选茗茶", "航空周边", "员工专区"];
 
-export default function Mall({ onCheckout, onShowCompensation, onShowEmployeeAuth, onShowEmployeeMall, onShowPointsCenter, onShowPointsMall, onShowLogin, onTabChange, onShowCustomerService }: { 
+export default function Mall({ 
+  onCheckout, 
+  onShowCompensation, 
+  onShowEmployeeAuth, 
+  onShowEmployeeMall, 
+  onShowPointsCenter, 
+  onShowPointsMall, 
+  onShowLogin, 
+  onTabChange, 
+  onShowCustomerService,
+  initialCategory,
+  onClearInitialCategory
+}: { 
   onCheckout: (items: any[]) => void, 
   onShowCompensation: () => void, 
   onShowEmployeeAuth: () => void, 
@@ -23,18 +35,37 @@ export default function Mall({ onCheckout, onShowCompensation, onShowEmployeeAut
   onShowPointsMall: () => void,
   onShowLogin: () => void,
   onTabChange: (tab: any, id?: string) => void,
-  onShowCustomerService: () => void
+  onShowCustomerService: () => void,
+  initialCategory?: string,
+  onClearInitialCategory?: () => void
 }) {
   const [showSearch, setShowSearch] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [activeCategory, setActiveCategory] = useState("全部");
   const [currentBanner, setCurrentBanner] = useState(0);
 
+  // Lifted search states to preserve results on detail page back navigation
+  const [fromSearch, setFromSearch] = useState(false);
+  const [searchKeyword, setSearchKeyword] = useState('');
+  const [searchExecuted, setSearchExecuted] = useState(false);
+  const [lastSearchedKeyword, setLastSearchedKeyword] = useState('');
+  const [searchSortBy, setSearchSortBy] = useState<'default' | 'price-asc' | 'price-desc' | 'sales'>('default');
+  const [searchFilterType, setSearchFilterType] = useState<'all' | 'physical' | 'internal' | 'points'>('all');
+  const [searchShowFilters, setSearchShowFilters] = useState(false);
+
   const BANNERS = [
     { title: "官方周边 官方品质", desc: "用心严选，飞行相伴", seed: "airline" },
-    { title: "春季甄选 特惠来袭", desc: "满200立减20元", seed: "flight" },
     { title: "积分兑换 惊喜不停", desc: "超值好礼 等你来兑", seed: "travel" },
   ];
+
+  useEffect(() => {
+    if (initialCategory) {
+      setActiveCategory(initialCategory);
+      if (onClearInitialCategory) {
+        onClearInitialCategory();
+      }
+    }
+  }, [initialCategory, onClearInitialCategory]);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -51,7 +82,37 @@ export default function Mall({ onCheckout, onShowCompensation, onShowEmployeeAut
     }
   };
 
-  const { userInfo } = useAuth();
+  const { userInfo, addToCart, showNotification } = useAuth();
+
+  const handleAddToCart = async (e: React.MouseEvent, product: Product) => {
+    e.stopPropagation();
+    if (!userInfo) {
+      onShowLogin();
+      return;
+    }
+    const defaultSpecs: Record<string, string> = {};
+    if (product.specs) {
+      product.specs.forEach(spec => {
+        defaultSpecs[spec.label] = spec.options[0];
+      });
+    }
+
+    try {
+      await addToCart({
+        productId: product.id,
+        name: product.name,
+        image: product.images[0],
+        price: product.price || 0,
+        points: product.points,
+        isPointsOnly: product.isPointsOnly,
+        specs: defaultSpecs,
+        quantity: 1
+      });
+      showNotification('已加入购物车', product.name);
+    } catch (error) {
+      console.error(error);
+    }
+  };
 
   const handleCategoryClick = (cat: string) => {
     if (cat === "积分兑换") {
@@ -60,6 +121,16 @@ export default function Mall({ onCheckout, onShowCompensation, onShowEmployeeAut
         return;
       }
       onShowPointsMall();
+    } else if (cat === "员工专区") {
+      if (!userInfo) {
+        onShowLogin();
+        return;
+      }
+      if (userInfo?.isEmployee) {
+        setActiveCategory(cat);
+      } else {
+        onShowEmployeeAuth();
+      }
     } else {
       setActiveCategory(cat);
     }
@@ -99,8 +170,22 @@ export default function Mall({ onCheckout, onShowCompensation, onShowEmployeeAut
         onBack={() => setShowSearch(false)} 
         onProductClick={(product) => {
           setSelectedProduct(product);
+          setFromSearch(true);
           setShowSearch(false);
         }}
+        onShowLogin={onShowLogin}
+        keyword={searchKeyword}
+        setKeyword={setSearchKeyword}
+        searchExecuted={searchExecuted}
+        setSearchExecuted={setSearchExecuted}
+        lastSearchedKeyword={lastSearchedKeyword}
+        setLastSearchedKeyword={setLastSearchedKeyword}
+        sortBy={searchSortBy}
+        setSortBy={setSearchSortBy}
+        filterType={searchFilterType}
+        setFilterType={setSearchFilterType}
+        showFilters={searchShowFilters}
+        setShowFilters={setSearchShowFilters}
       />
     );
   }
@@ -109,7 +194,13 @@ export default function Mall({ onCheckout, onShowCompensation, onShowEmployeeAut
     return (
       <ProductDetail 
         product={selectedProduct} 
-        onBack={() => setSelectedProduct(null)} 
+        onBack={() => {
+          setSelectedProduct(null);
+          if (fromSearch) {
+            setShowSearch(true);
+            setFromSearch(false);
+          }
+        }} 
         onCheckout={onCheckout}
         onShowLogin={onShowLogin}
         onShowEmployeeAuth={onShowEmployeeAuth}
@@ -123,12 +214,14 @@ export default function Mall({ onCheckout, onShowCompensation, onShowEmployeeAut
   }
 
   const filteredProducts = (() => {
-    let list = DETAILED_PRODUCTS;
+    if (activeCategory === "员工专区") {
+      return INTERNAL_PRODUCTS;
+    }
     
+    let list = DETAILED_PRODUCTS;
     if (activeCategory !== "全部") {
       list = list.filter(p => p.category === activeCategory);
     }
-    
     return list;
   })();
 
@@ -144,7 +237,15 @@ export default function Mall({ onCheckout, onShowCompensation, onShowEmployeeAut
             <span className="font-bold text-lg tracking-tight">东海航空商城</span>
           </div>
         </div>
-        <div className="relative cursor-pointer" onClick={() => setShowSearch(true)}>
+        <div className="relative cursor-pointer" onClick={() => {
+          setSearchKeyword('');
+          setSearchExecuted(false);
+          setLastSearchedKeyword('');
+          setSearchSortBy('default');
+          setSearchFilterType('all');
+          setSearchShowFilters(false);
+          setShowSearch(true);
+        }}>
           <div className="w-full bg-white rounded-full py-2.5 px-4 text-[13px] text-gray-400 text-center">
             搜索商品、品类、关键词
           </div>
@@ -152,26 +253,6 @@ export default function Mall({ onCheckout, onShowCompensation, onShowEmployeeAut
       </div>
 
       <div className="pt-2">
-      {/* Quick Actions */}
-        <div className="px-4 py-3 grid grid-cols-3 gap-4 bg-white mb-2 shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
-            {[
-              { label: '旅客赔付', icon: ShieldCheck, color: 'text-donghai', bg: 'bg-donghai/10', onClick: handleCompensationClick },
-              { label: '积分商城中心', icon: Coins, color: 'text-orange-500', bg: 'bg-orange-50', onClick: handlePointsCenterClick },
-              { label: '员工专区', icon: User, color: 'text-blue-500', bg: 'bg-blue-50', onClick: handleEmployeeZoneClick },
-            ].map((item, i) => (
-            <div key={i} className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform" onClick={item.onClick}>
-              <div className={`w-10 h-10 ${item.bg} rounded-2xl flex items-center justify-center relative shadow-sm`}>
-                <item.icon className={`w-4 h-4 ${item.color}`} />
-                {item.label === '员工专区' && !userInfo?.isEmployee && (
-                  <div className="absolute -top-1 -right-1 bg-red-500 rounded-full p-0.5 border border-white">
-                    <ShieldAlert className="w-2.5 h-2.5 text-white" />
-                  </div>
-                )}
-              </div>
-              <span className="text-[10px] text-gray-600 font-bold">{item.label}</span>
-            </div>
-          ))}
-        </div>
 
         {/* Banner Carousel */}
         <div className="px-4 py-2">
@@ -245,6 +326,11 @@ export default function Mall({ onCheckout, onShowCompensation, onShowEmployeeAut
                   className="absolute inset-0 w-full h-full object-cover align-top"
                   referrerPolicy="no-referrer"
                 />
+                {(product.isInternal || product.id.startsWith('emp-')) && (
+                  <div className="absolute top-1.5 left-1.5 z-10 bg-gradient-to-r from-red-500 to-rose-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-sm shadow-[0_2px_4px_rgba(0,0,0,0.15)] tracking-wide">
+                    员工专属
+                  </div>
+                )}
                 {product.stock === 0 && (
                   <div className="absolute inset-0 bg-black/40 flex items-center justify-center z-10">
                     <span className="text-white text-[10px] border border-white px-2 py-0.5 rounded-sm bg-black/20">已售罄</span>
@@ -255,10 +341,19 @@ export default function Mall({ onCheckout, onShowCompensation, onShowEmployeeAut
                 <h3 className="text-[12px] font-medium text-gray-800 line-clamp-2 leading-snug">
                   {product.name}
                 </h3>
-                <div className="flex items-baseline gap-0.5 mt-auto">
-                  <span className="text-[#e02e24] font-bold text-[14px] leading-none">{product.points || product.price}</span>
-                  <span className="text-[#e02e24] text-[9px] ml-0.5 font-medium">积分</span>
-                  <span className="text-[10px] text-gray-400 ml-1">已拼{product.sales > 1000 ? Math.floor(product.sales/1000) + '万+' : product.sales}件</span>
+                <div className="flex items-center justify-between mt-auto">
+                  <div className="flex items-baseline gap-0.5">
+                    <span className="text-[#e02e24] font-bold text-[14px] leading-none">{product.points || product.price}</span>
+                    <span className="text-[#e02e24] text-[9px] ml-0.5 font-medium">积分</span>
+                  </div>
+                  <Button
+                    size="icon"
+                    className="w-7 h-7 rounded-full bg-donghai hover:bg-donghai/90 text-white flex items-center justify-center p-0 shadow-sm transition-transform active:scale-95"
+                    onClick={(e) => handleAddToCart(e, product)}
+                    disabled={product.stock === 0}
+                  >
+                    <ShoppingCart className="w-3.5 h-3.5" />
+                  </Button>
                 </div>
               </div>
             </div>

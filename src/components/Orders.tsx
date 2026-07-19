@@ -3,6 +3,8 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import ProductDetail, { Product } from './ProductDetail';
+import { DETAILED_PRODUCTS, POINTS_PRODUCTS, INTERNAL_PRODUCTS } from '../constants';
 import { 
   ChevronLeft, 
   Package, 
@@ -46,7 +48,9 @@ interface OrderListCardProps {
   onSelect: (o: Order) => void;
   onPay: (o: Order) => void;
   onUpdateStatus: (id: string, s: OrderStatus) => void;
+  onDelete: (id: string) => void;
   STATUS_MAP: Record<OrderStatus, { label: string; color: string }>;
+  onCheckout?: (items: any[]) => void;
 }
 
 const OrderListCard = ({ 
@@ -54,7 +58,9 @@ const OrderListCard = ({
   onSelect, 
   onPay, 
   onUpdateStatus, 
-  STATUS_MAP 
+  onDelete,
+  STATUS_MAP,
+  onCheckout
 }: OrderListCardProps) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const items = isExpanded ? order.items : order.items.slice(0, 1);
@@ -161,10 +167,36 @@ const OrderListCard = ({
               className="rounded-full text-[11px] h-6 px-4 border-donghai text-donghai py-0 font-bold" 
               onClick={(e) => {
                 e.stopPropagation();
-                onSelect(order);
+                if (order.status === 'completed' && onCheckout) {
+                  onCheckout(order.items.map(item => ({
+                    productId: item.productId,
+                    name: item.name,
+                    image: item.image,
+                    price: item.price || 0,
+                    points: item.points || 0,
+                    isPointsOnly: item.isPointsOnly,
+                    specs: item.specs || {},
+                    quantity: item.quantity || 1
+                  })));
+                } else {
+                  onSelect(order);
+                }
               }}
             >
               {(order.status === 'afterSalesCompleted' || order.status === 'afterSalesRejected') ? '查看详情' : '再来一单'}
+            </Button>
+          )}
+          {(order.status === 'cancelled' || order.status === 'completed') && (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="rounded-full text-[11px] h-6 px-3 border-red-200 text-red-500 hover:text-red-600 hover:bg-red-50 py-0 font-bold"
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete(order.id);
+              }}
+            >
+              删除订单
             </Button>
           )}
         </div>
@@ -255,24 +287,27 @@ const LogisticsDetail = ({ order, onBack }: { order: Order, onBack: () => void }
 };
 
 // Order Detail View
-const OrderDetail = ({ order, onBack, onShowLogistics, onApplyAfterSales, onPay, isPaying }: { order: Order, onBack: () => void, onShowLogistics: () => void, onApplyAfterSales: (productId: string) => void, onPay: (order: Order) => void, isPaying: boolean }) => {
+const OrderDetail = ({ order, onBack, onShowLogistics, onApplyAfterSales, onPay, isPaying, onDelete, onCheckout, onProductClick }: { order: Order, onBack: () => void, onShowLogistics: () => void, onApplyAfterSales: (productId: string) => void, onPay: (order: Order) => void, isPaying: boolean, onDelete: (orderId: string) => void, onCheckout?: (items: any[]) => void, onProductClick?: (item: any) => void }) => {
   const { updateOrderStatus, shipOrder, userInfo } = useAuth();
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [copiedTracking, setCopiedTracking] = useState(false);
   const statusInfo = STATUS_MAP[order.status];
+
+  const handleCopyTracking = (num: string) => {
+    navigator.clipboard.writeText(num);
+    setCopiedTracking(true);
+    setTimeout(() => setCopiedTracking(false), 1500);
+  };
 
   // Mock store name
   const storeName = "东海航空旗舰店";
 
   return (
-    <>
+    <div className="flex flex-col h-full relative">
       {/* Navigation Header */}
       <div className="bg-white px-4 pt-12 pb-4 flex items-center justify-between shrink-0 border-b">
         <ChevronLeft className="w-6 h-6 cursor-pointer" onClick={onBack} />
         <h1 className="text-base font-bold text-gray-800">订单详情</h1>
-        <div className="flex items-center gap-4">
-          <Share2 className="w-5 h-5 text-gray-600" />
-          <MoreHorizontal className="w-6 h-6 text-gray-600" />
-        </div>
+        <div className="w-6" />
       </div>
 
       <div className="flex-1 overflow-y-auto no-scrollbar space-y-3 p-3">
@@ -286,58 +321,37 @@ const OrderDetail = ({ order, onBack, onShowLogistics, onApplyAfterSales, onPay,
             {order.status === 'completed' && '订单已完成，感谢您的支持'}
             {order.status === 'pendingPayment' && '请尽快完成支付'}
             {order.status === 'pendingShipment' && '商品准备中'}
-            {order.status === 'pendingReceipt' && '包裹已在路上'}
           </p>
         </div>
 
         {/* Store & Items Card */}
         <Card className="p-4 border-none shadow-sm bg-white rounded-2xl">
-          <div className="flex items-center gap-2 mb-4 border-b border-gray-50 pb-3">
-            <div className="w-5 h-5 bg-donghai rounded flex items-center justify-center">
-              <Store className="w-3 h-3 text-white" />
-            </div>
-            <span className="text-xs font-bold text-gray-800">{storeName}</span>
-            <ChevronRight className="w-3 h-3 text-gray-300" />
-          </div>
-
           <div className="space-y-6">
             {order.items.map((item, i) => (
-              <div key={i} className="space-y-4">
-                <div className="flex gap-3">
+              <div key={i} className="flex gap-3 items-center justify-between pb-4 last:pb-0 border-b last:border-0 border-gray-50">
+                <div className="flex gap-3 flex-1 min-w-0">
                   <img 
                     src={item.image} 
                     alt={item.name} 
-                    className="w-20 h-20 rounded-xl object-cover bg-gray-50 flex-shrink-0"
+                    className="w-16 h-16 rounded-xl object-cover bg-gray-50 flex-shrink-0 cursor-pointer hover:opacity-90 active:scale-95 transition-all"
                     referrerPolicy="no-referrer"
+                    onClick={() => onProductClick?.(item)}
                   />
-                  <div className="flex-1 min-w-0">
-                    <div className="flex justify-between items-start gap-2">
-                      <h4 className="text-sm font-bold text-gray-800 line-clamp-2 leading-snug">{item.name}</h4>
-                      <div className="text-right flex-shrink-0">
-                        <div className="flex items-center gap-0.5 text-donghai font-bold text-sm">
-                          <Coins className="w-3 h-3" />
-                          <span>{item.points || item.price} 积分</span>
-                        </div>
+                  <div className="flex-1 min-w-0 flex flex-col justify-center">
+                    <h4 
+                      className="text-xs font-bold text-gray-800 line-clamp-1 leading-tight mb-1 text-left cursor-pointer hover:text-donghai transition-colors"
+                      onClick={() => onProductClick?.(item)}
+                    >
+                      {item.name}
+                    </h4>
+                    <div className="flex flex-col gap-0.5 mt-0.5">
+                      <div className="flex items-center gap-0.5 text-donghai font-bold text-xs text-left">
+                        <Coins className="w-3.5 h-3.5" />
+                        <span>{item.points || item.price} 积分</span>
                       </div>
-                    </div>
-                    <p className="text-[10px] text-gray-400 mt-1">
-                      数量 x{item.quantity}，{Object.values(item.specs).join(', ')}
-                    </p>
-                    <div className="flex flex-wrap gap-2 mt-2">
-                      <span className="text-[9px] text-donghai bg-donghai/5 px-1.5 py-0.5 rounded border border-donghai/10">7天无理由退货</span>
-                      <span className="text-[9px] text-donghai bg-donghai/5 px-1.5 py-0.5 rounded border border-donghai/10">7天价保</span>
+                      <span className="text-[10px] text-gray-400 font-medium text-left">数量：{item.quantity}</span>
                     </div>
                   </div>
-                </div>
-
-                {/* Actions Per Item/Order as in P2 */}
-                <div className="flex justify-end gap-3">
-                  {order.status === 'completed' && (
-                    <>
-                      <Button variant="outline" size="sm" className="rounded-full text-[10px] h-8 px-4 border-gray-100" onClick={() => onApplyAfterSales(item.productId)}>申请售后</Button>
-                    </>
-                  )}
-                  <Button variant="outline" size="sm" className="rounded-full text-[10px] h-8 px-4 border-gray-100">加购物车</Button>
                 </div>
               </div>
             ))}
@@ -352,7 +366,6 @@ const OrderDetail = ({ order, onBack, onShowLogistics, onApplyAfterSales, onPay,
                 <span className="text-gray-800">实付积分</span>
                 <div className="flex items-center gap-1">
                   <span className="text-lg text-donghai">{order.totalPoints || order.totalAmount || 0} 积分</span>
-                  <ChevronRight className="w-3 h-3 text-donghai" />
                 </div>
              </div>
 
@@ -361,109 +374,66 @@ const OrderDetail = ({ order, onBack, onShowLogistics, onApplyAfterSales, onPay,
                 <div className="space-y-4">
                   <div className="flex justify-between text-[11px]">
                     <span className="text-gray-400 font-medium">订单编号</span>
-                    <div className="flex items-center gap-2">
-                      <span className="text-gray-600 truncate max-w-[150px] font-mono">{order.id}</span>
-                      <button onClick={() => {}} className="text-gray-300">复制</button>
-                    </div>
+                    <span className="text-gray-600 truncate max-w-[180px] font-mono">{order.id}</span>
                   </div>
                   
-                  <AnimatePresence>
-                    {isExpanded && (
-                      <motion.div 
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: 'auto', opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        className="overflow-hidden space-y-4 pt-4 border-t border-gray-50"
-                      >
-                        <div className="flex justify-between items-start text-[11px]">
-                          <span className="text-gray-400">交易快照</span>
-                          <p className="text-right text-gray-500 max-w-[180px]">发生交易争议时，可作为判断依据</p>
-                        </div>
-                        <div className="flex justify-between text-[11px]">
-                          <span className="text-gray-400">支付方式</span>
-                          <span className="text-gray-600">{order.paymentMethod}</span>
-                        </div>
-                        <div className="flex justify-between text-[11px]">
-                          <span className="text-gray-400">发票类型</span>
-                          <span className="text-gray-600">个人发票</span>
-                        </div>
-                        {order.paymentTime && (
-                          <div className="flex justify-between text-[11px]">
-                            <span className="text-gray-400">支付时间</span>
-                            <span className="text-gray-600">{order.paymentTime}</span>
-                          </div>
-                        )}
-                        <div className="flex justify-between text-[11px]">
-                          <span className="text-gray-400">下单时间</span>
-                          <span className="text-gray-600">{order.createdAt}</span>
-                        </div>
-                        <div className="border-t border-gray-50 pt-4 space-y-3">
-                          <div className="flex justify-between text-[11px]">
-                            <span className="text-gray-400">配送方式</span>
-                            <span className="text-gray-600">东海航空配送</span>
-                          </div>
-                          <div className="flex justify-between text-[11px]">
-                            <span className="text-gray-400">收货信息</span>
-                            <span className="text-gray-600">{order.address?.receiver} {order.address?.phone?.replace(/(\d{3})\d{4}(\d{4})/, '$1****$2')}</span>
-                          </div>
-                          <div className="flex flex-col gap-1 text-[11px]">
-                            <span className="text-gray-400">收货地址</span>
-                            <p className="text-gray-600 font-medium">
-                              {order.address?.province}{order.address?.city}{order.address?.district}{order.address?.detail}
-                            </p>
-                          </div>
-                          <div className="flex justify-between text-[11px]">
-                            <span className="text-gray-400">收货方式</span>
-                            <span className="text-gray-600">送货上门</span>
-                          </div>
-                        </div>
-                      </motion.div>
+                  <div className="space-y-4 pt-1">
+                    {order.paymentTime && (
+                      <div className="flex justify-between text-[11px]">
+                        <span className="text-gray-400">支付时间</span>
+                        <span className="text-gray-600">{order.paymentTime}</span>
+                      </div>
                     )}
-                  </AnimatePresence>
-                </div>
-
-                <div 
-                  onClick={() => setIsExpanded(!isExpanded)}
-                  className="mt-4 flex items-center justify-center gap-1 py-1 text-[11px] text-gray-400 cursor-pointer"
-                >
-                  <span>{isExpanded ? '收起' : '全部订单信息'}</span>
-                  {isExpanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                    <div className="flex justify-between text-[11px]">
+                      <span className="text-gray-400">下单时间</span>
+                      <span className="text-gray-600">{order.createdAt}</span>
+                    </div>
+                    <div className="border-t border-gray-50 pt-4 space-y-3">
+                      <div className="flex justify-between text-[11px] items-center">
+                        <span className="text-gray-400">物流信息</span>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-gray-600 font-medium">
+                            {order.logistics?.company || '顺丰速运'} ({order.logistics?.trackingNumber || 'SF174928502847'})
+                          </span>
+                          <button 
+                            onClick={() => handleCopyTracking(order.logistics?.trackingNumber || 'SF174928502847')}
+                            className="text-donghai font-bold text-[10px] hover:opacity-85 active:opacity-70 px-1.5 py-0.5 rounded bg-donghai/5"
+                          >
+                            复制
+                          </button>
+                        </div>
+                      </div>
+                      <div className="flex justify-between text-[11px]">
+                        <span className="text-gray-400">收货信息</span>
+                        <span className="text-gray-600">{order.address?.receiver} {order.address?.phone?.replace(/(\d{3})\d{4}(\d{4})/, '$1****$2')}</span>
+                      </div>
+                      <div className="flex justify-between items-start text-[11px] gap-4">
+                        <span className="text-gray-400 flex-shrink-0">收货地址</span>
+                        <p className="text-gray-600 font-medium text-right flex-1 leading-snug">
+                          {order.address?.province}{order.address?.city}{order.address?.district}{order.address?.detail}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
                 </div>
              </div>
           </div>
         </Card>
-
-        {/* Security / Assurance Banner (Restored) */}
-        <div className="py-4">
-          <div className="flex items-center justify-between px-2 mb-3">
-            <div className="flex items-center gap-1.5">
-              <ShieldCheck className="w-4 h-4 text-donghai" />
-              <span className="text-xs font-bold text-gray-800">安心保障</span>
-            </div>
-            <div className="flex items-center gap-1 text-[10px] text-gray-400">
-              <span>查看全部</span>
-              <ChevronRight className="w-2.5 h-2.5" />
-            </div>
-          </div>
-          <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2">
-            {[
-              { title: '先行赔付', desc: '最高赔付2000元' },
-              { title: '正品保证', desc: '官方严选假一赔十' },
-              { title: '售后无忧', desc: '专属电话客服保障' }
-            ].map((item, i) => (
-              <div key={i} className="min-w-[160px] bg-white p-3 rounded-xl border border-gray-50 flex items-center gap-3 shadow-sm">
-                <div className="w-8 h-8 rounded-lg bg-donghai/5 flex items-center justify-center">
-                  <ShieldCheck className="w-4 h-4 text-donghai" />
-                </div>
-                <div className="min-w-0">
-                  <p className="text-[10px] font-bold text-gray-800 truncate">{item.title}</p>
-                  <p className="text-[8px] text-gray-400 truncate">{item.desc}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
       </div>
+
+      {/* Toast Notification for copying */}
+      <AnimatePresence>
+        {copiedTracking && (
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.9, y: 15 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.9, y: 15 }}
+            className="absolute bottom-24 left-1/2 -translate-x-1/2 bg-black/80 text-white text-xs px-3.5 py-1.5 rounded-full shadow-lg z-50 flex items-center justify-center font-medium pointer-events-none"
+          >
+            <span>已复制</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Footer Actions */}
       <div className="bg-white border-t px-4 py-3 pb-8 flex items-center justify-end gap-3 shrink-0 shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
@@ -492,31 +462,109 @@ const OrderDetail = ({ order, onBack, onShowLogistics, onApplyAfterSales, onPay,
         )}
         {order.status === 'pendingReceipt' && (
           <>
-            <Button variant="outline" className="rounded-full text-xs h-9 px-6 border-gray-200" onClick={onShowLogistics}>查看物流</Button>
             <Button className="rounded-full text-xs h-9 px-8 bg-donghai text-white" onClick={async () => await updateOrderStatus(order.id, 'completed')}>确认收货</Button>
           </>
         )}
         {order.status === 'completed' && (
           <>
-            <Button variant="outline" className="rounded-full text-xs h-9 px-6 border-donghai text-donghai">再次购买</Button>
+            <Button 
+              variant="outline" 
+              className="rounded-full text-xs h-9 px-6 border-donghai text-donghai"
+              onClick={() => {
+                if (onCheckout) {
+                  onCheckout(order.items.map(item => ({
+                    productId: item.productId,
+                    name: item.name,
+                    image: item.image,
+                    price: item.price || 0,
+                    points: item.points || 0,
+                    isPointsOnly: item.isPointsOnly,
+                    specs: item.specs || {},
+                    quantity: item.quantity || 1
+                  })));
+                }
+              }}
+            >
+              再次购买
+            </Button>
           </>
+        )}
+        {(order.status === 'cancelled' || order.status === 'completed') && (
+          <Button 
+            variant="outline" 
+            className="rounded-full text-xs h-9 px-6 border-red-200 text-red-500 hover:text-red-600 hover:bg-red-50 font-bold"
+            onClick={() => onDelete(order.id)}
+          >
+            删除订单
+          </Button>
         )}
         {order.status === 'afterSales' && (
           <Button variant="outline" className="rounded-full text-xs h-9 px-6 border-gray-200 text-gray-500">查看售后详情</Button>
         )}
       </div>
-    </>
+    </div>
   );
 };
 
-export default function Orders({ onApplyAfterSales, onBack, isInternalOnly = false, initialOrderId, onClearTarget }: { onApplyAfterSales: (orderId: string, productId: string) => void, onBack?: () => void, isInternalOnly?: boolean, initialOrderId?: string, onClearTarget?: () => void }) {
-  const { isLoggedIn, userInfo, updateOrderStatus, shipOrder, purchasePoints } = useAuth();
+export default function Orders({ 
+  onApplyAfterSales, 
+  onBack, 
+  isInternalOnly = false, 
+  initialOrderId, 
+  onClearTarget, 
+  onCheckout,
+  onTabChange,
+  onShowLogin,
+  onShowCustomerService,
+  onShowEmployeeAuth
+}: { 
+  onApplyAfterSales: (orderId: string, productId: string) => void, 
+  onBack?: () => void, 
+  isInternalOnly?: boolean, 
+  initialOrderId?: string, 
+  onClearTarget?: () => void, 
+  onCheckout?: (items: any[]) => void,
+  onTabChange?: (tab: any) => void,
+  onShowLogin?: (step?: 'auth' | 'phone') => void,
+  onShowCustomerService?: () => void,
+  onShowEmployeeAuth?: () => void
+}) {
+  const { isLoggedIn, userInfo, updateOrderStatus, shipOrder, purchasePoints, deleteOrder } = useAuth();
   const [activeTab, setActiveTab] = useState('all');
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [showLogistics, setShowLogistics] = useState(false);
   const [payingOrderId, setPayingOrderId] = useState<string | null>(null);
   const [showCashier, setShowCashier] = useState(false);
   const [orderToPay, setOrderToPay] = useState<Order | null>(null);
+  const [orderIdToDelete, setOrderIdToDelete] = useState<string | null>(null);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+
+  const handleProductClick = (orderItem: any) => {
+    const allProducts = [...DETAILED_PRODUCTS, ...POINTS_PRODUCTS, ...INTERNAL_PRODUCTS];
+    let matchedProduct = allProducts.find(p => p.id === orderItem.productId);
+    
+    if (!matchedProduct) {
+      matchedProduct = {
+        id: orderItem.productId || orderItem.id,
+        name: orderItem.name,
+        images: [orderItem.image],
+        price: orderItem.price || 0,
+        points: orderItem.points,
+        isPointsOnly: orderItem.isPointsOnly,
+        sales: 100,
+        rating: 98,
+        stock: 99,
+        description: "暂无详细描述",
+        specs: orderItem.specs ? Object.keys(orderItem.specs).map(key => ({
+          label: key,
+          options: [orderItem.specs[key]]
+        })) : [],
+        afterSales: "支持7天无理由退换。",
+        category: "其它"
+      };
+    }
+    setSelectedProduct(matchedProduct);
+  };
 
   React.useEffect(() => {
     if (initialOrderId && userInfo?.orders) {
@@ -582,10 +630,37 @@ export default function Orders({ onApplyAfterSales, onBack, isInternalOnly = fal
     );
   }
 
-  if (showLogistics && selectedOrder) {
+  if (selectedProduct) {
+    return (
+      <div className="absolute inset-0 z-[200] flex flex-col bg-white animate-in fade-in slide-in-from-right duration-300">
+        <ProductDetail 
+          product={selectedProduct} 
+          onBack={() => setSelectedProduct(null)}
+          onCheckout={(items) => {
+            setSelectedProduct(null);
+            onCheckout?.(items);
+          }}
+          onShowLogin={onShowLogin || (() => {})}
+          onTabChange={(tab) => {
+            setSelectedProduct(null);
+            onTabChange?.(tab);
+          }}
+          onShowCustomerService={onShowCustomerService || (() => {})}
+          onShowEmployeeAuth={onShowEmployeeAuth}
+        />
+      </div>
+    );
+  }
+
+  const orders = userInfo?.orders || [];
+  const currentSelectedOrder = selectedOrder 
+    ? (orders.find(o => o.id === selectedOrder.id) || selectedOrder)
+    : null;
+
+  if (showLogistics && currentSelectedOrder) {
     return (
       <div className="absolute inset-0 z-[120] flex flex-col bg-gray-50 animate-in fade-in slide-in-from-right duration-300">
-        <LogisticsDetail order={selectedOrder} onBack={() => setShowLogistics(false)} />
+        <LogisticsDetail order={currentSelectedOrder} onBack={() => setShowLogistics(false)} />
       </div>
     );
   }
@@ -595,22 +670,23 @@ export default function Orders({ onApplyAfterSales, onBack, isInternalOnly = fal
     onClearTarget?.();
   };
 
-  if (selectedOrder) {
+  if (currentSelectedOrder) {
     return (
       <div className="absolute inset-0 z-[110] flex flex-col bg-gray-50 animate-in fade-in slide-in-from-right duration-300">
         <OrderDetail 
-          order={selectedOrder} 
+          order={currentSelectedOrder} 
           onBack={handleCloseDetail} 
           onShowLogistics={() => setShowLogistics(true)}
-          onApplyAfterSales={(productId) => onApplyAfterSales(selectedOrder.id, productId)}
+          onApplyAfterSales={(productId) => onApplyAfterSales(currentSelectedOrder.id, productId)}
           onPay={handlePayOrder}
-          isPaying={payingOrderId === selectedOrder.id}
+          isPaying={payingOrderId === currentSelectedOrder.id}
+          onDelete={(id) => setOrderIdToDelete(id)}
+          onCheckout={onCheckout}
+          onProductClick={handleProductClick}
         />
       </div>
     );
   }
-
-  const orders = userInfo?.orders || [];
   const baseOrders = isInternalOnly ? orders.filter(o => o.isInternal) : orders;
   const filteredOrders = activeTab === 'all' 
     ? baseOrders 
@@ -657,7 +733,9 @@ export default function Orders({ onApplyAfterSales, onBack, isInternalOnly = fal
                   onSelect={setSelectedOrder}
                   onPay={handlePayOrder}
                   onUpdateStatus={(id, s) => updateOrderStatus(id, s)}
+                  onDelete={(id) => setOrderIdToDelete(id)}
                   STATUS_MAP={STATUS_MAP}
+                  onCheckout={onCheckout}
                 />
               ))}
 
@@ -729,6 +807,49 @@ export default function Orders({ onApplyAfterSales, onBack, isInternalOnly = fal
                   </div>
                   <span>安全支付环境，保障您的资金安全</span>
                 </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Delete Confirmation Dialog */}
+      <AnimatePresence>
+        {orderIdToDelete && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[150] bg-black/60 flex items-center justify-center px-8"
+          >
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white w-full max-w-xs rounded-3xl p-6 text-center shadow-2xl"
+            >
+              <h3 className="text-base font-bold mb-3 text-gray-800">删除订单</h3>
+              <p className="text-xs text-gray-500 mb-6 font-medium leading-relaxed">确定要删除该订单吗？<br/>删除后将无法恢复。</p>
+              <div className="grid grid-cols-2 gap-3">
+                <Button 
+                  variant="outline" 
+                  onClick={() => setOrderIdToDelete(null)}
+                  className="rounded-xl h-10 text-xs border-gray-200"
+                >
+                  取消
+                </Button>
+                <Button 
+                  onClick={async () => {
+                    if (orderIdToDelete) {
+                      await deleteOrder(orderIdToDelete);
+                      setOrderIdToDelete(null);
+                      setSelectedOrder(null);
+                    }
+                  }}
+                  className="rounded-xl h-10 text-xs bg-red-500 hover:bg-red-600 text-white font-bold"
+                >
+                  确认删除
+                </Button>
               </div>
             </motion.div>
           </motion.div>

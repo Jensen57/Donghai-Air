@@ -3,6 +3,7 @@ import {
   ChevronLeft, 
   Camera, 
   X, 
+  Check,
   ChevronRight, 
   Clock, 
   CheckCircle2, 
@@ -18,7 +19,8 @@ import {
   ShieldCheck,
   Filter,
   Search,
-  ArrowUpDown
+  ArrowUpDown,
+  ChevronDown
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Button } from '@/components/ui/button';
@@ -48,14 +50,16 @@ export default function Compensation({ onBack }: { onBack: () => void }) {
   const [showFilters, setShowFilters] = useState(false);
 
   // Apply Form State
-  const [type, setType] = useState<CompensationType>('cash');
+  const [type, setType] = useState<CompensationType>('points');
   const [flightNo, setFlightNo] = useState('');
   const [flightDate, setFlightDate] = useState('');
   const [passengerName, setPassengerName] = useState('');
+  const [passengerIdType, setPassengerIdType] = useState<'idCard' | 'passport'>('idCard');
   const [passengerIdCard, setPassengerIdCard] = useState('');
   const [reason, setReason] = useState('');
   const [images, setImages] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isIdTypeDrawerOpen, setIsIdTypeDrawerOpen] = useState(false);
 
   const filteredRecords = useMemo(() => {
     let records = [...(userInfo?.compensations || [])];
@@ -93,12 +97,13 @@ export default function Compensation({ onBack }: { onBack: () => void }) {
 
     setIsSubmitting(true);
     try {
+      const formattedIdCard = `[${passengerIdType === 'idCard' ? '身份证' : '护照'}] ${passengerIdCard}`;
       await applyCompensation({
         type,
         flightNo,
         flightDate,
         passengerName,
-        passengerIdCard,
+        passengerIdCard: formattedIdCard,
         reason,
         images,
       });
@@ -107,6 +112,7 @@ export default function Compensation({ onBack }: { onBack: () => void }) {
       setFlightNo('');
       setFlightDate('');
       setPassengerName('');
+      setPassengerIdType('idCard');
       setPassengerIdCard('');
       setReason('');
       setImages([]);
@@ -134,96 +140,30 @@ export default function Compensation({ onBack }: { onBack: () => void }) {
         
         {/* Filter Bar */}
         <div className="bg-white px-4 py-2 border-b flex items-center gap-4 overflow-x-auto no-scrollbar sticky top-[88px] z-40">
-          <div 
+          <button 
             onClick={() => setFilterStatus('all')}
-            className={`flex-shrink-0 px-4 py-1.5 rounded-full text-xs font-medium transition-colors ${
-              filterStatus === 'all' ? 'bg-donghai text-white' : 'bg-gray-100 text-gray-500'
+            className={`flex-shrink-0 px-4 py-1.5 rounded-full text-xs font-medium transition-colors cursor-pointer ${
+              filterStatus === 'all' ? 'bg-donghai text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
             }`}
           >
             全部
-          </div>
-          {Object.entries(STATUS_MAP).map(([key, value]) => (
-            <div 
-              key={key}
-              onClick={() => setFilterStatus(key as CompensationStatus)}
-              className={`flex-shrink-0 px-4 py-1.5 rounded-full text-xs font-medium transition-colors ${
-                filterStatus === key ? 'bg-donghai text-white' : 'bg-gray-100 text-gray-500'
+          </button>
+          {([
+            { key: 'pendingAudit', label: '待审核' },
+            { key: 'approved', label: '审核通过' },
+            { key: 'rejected', label: '审核拒绝' }
+          ] as const).map((tab) => (
+            <button 
+              key={tab.key}
+              onClick={() => setFilterStatus(tab.key)}
+              className={`flex-shrink-0 px-4 py-1.5 rounded-full text-xs font-medium transition-colors cursor-pointer ${
+                filterStatus === tab.key ? 'bg-donghai text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
               }`}
             >
-              {value.label}
-            </div>
+              {tab.label}
+            </button>
           ))}
         </div>
-
-        {/* Date Filter Toggle */}
-        <div className="bg-white px-4 py-2 flex items-center justify-between border-b">
-          <div className="flex items-center gap-2 text-[10px] text-gray-400">
-            <Calendar className="w-3 h-3" />
-            <span>{startDate || '开始日期'} - {endDate || '结束日期'}</span>
-          </div>
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className="h-7 text-donghai text-[10px] font-bold"
-            onClick={() => setShowFilters(!showFilters)}
-          >
-            <Filter className="w-3 h-3 mr-1" />
-            筛选时间
-          </Button>
-        </div>
-
-        {/* Date Filter Panel */}
-        <AnimatePresence>
-          {showFilters && (
-            <motion.div 
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: 'auto', opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              className="bg-white px-4 py-4 border-b overflow-hidden"
-            >
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <label className="text-[10px] text-gray-400 ml-1">开始日期</label>
-                  <input 
-                    type="date" 
-                    value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
-                    className="w-full bg-gray-50 rounded-lg h-9 px-3 text-[11px] text-gray-800 focus:outline-none"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-[10px] text-gray-400 ml-1">结束日期</label>
-                  <input 
-                    type="date" 
-                    value={endDate}
-                    onChange={(e) => setEndDate(e.target.value)}
-                    className="w-full bg-gray-50 rounded-lg h-9 px-3 text-[11px] text-gray-800 focus:outline-none"
-                  />
-                </div>
-              </div>
-              <div className="flex justify-end mt-4 gap-2">
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  className="h-8 text-[11px]"
-                  onClick={() => {
-                    setStartDate('');
-                    setEndDate('');
-                  }}
-                >
-                  重置
-                </Button>
-                <Button 
-                  size="sm" 
-                  className="h-8 bg-donghai text-white text-[11px] px-6 rounded-full"
-                  onClick={() => setShowFilters(false)}
-                >
-                  确定
-                </Button>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
         
         <div className="flex-1 overflow-y-auto p-4 space-y-4 pb-32">
           <div className="flex items-center justify-between mb-2">
@@ -290,19 +230,6 @@ export default function Compensation({ onBack }: { onBack: () => void }) {
             <div className="flex flex-col items-center justify-center py-20 text-gray-400">
               <ShieldCheck className="w-16 h-16 mb-4 opacity-10" />
               <p className="text-sm">未找到符合条件的赔付记录</p>
-              {(filterStatus !== 'all' || startDate || endDate) && (
-                <Button 
-                  variant="ghost" 
-                  className="mt-2 text-donghai text-xs"
-                  onClick={() => {
-                    setFilterStatus('all');
-                    setStartDate('');
-                    setEndDate('');
-                  }}
-                >
-                  清除筛选条件
-                </Button>
-              )}
             </div>
           )}
         </div>
@@ -319,38 +246,29 @@ export default function Compensation({ onBack }: { onBack: () => void }) {
           <h1 className="text-lg font-bold">赔付申请</h1>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-4 space-y-4 pb-32">
-          {/* Type Selection */}
-          <Card className="p-4 border-none shadow-sm bg-white rounded-2xl space-y-4">
-            <h3 className="text-xs font-bold text-gray-800">选择赔付类型</h3>
-            <div className="grid grid-cols-2 gap-3">
-              {[
-                { id: 'cash', label: '现金赔付', icon: CreditCard, sub: '原路退回或转账' },
-                { id: 'points', label: '积分赔付', icon: Coins, sub: '发放至会员账户' }
-              ].map((item) => (
-                <div 
-                  key={item.id}
-                  onClick={() => setType(item.id as CompensationType)}
-                  className={`p-3 rounded-xl border-2 transition-all ${
-                    type === item.id ? 'border-donghai bg-donghai/5' : 'border-gray-50 bg-white'
-                  }`}
-                >
-                  <item.icon className={`w-5 h-5 mb-2 ${type === item.id ? 'text-donghai' : 'text-gray-400'}`} />
-                  <div className={`text-xs font-bold mb-1 ${type === item.id ? 'text-donghai' : 'text-gray-800'}`}>
-                    {item.label}
-                  </div>
-                  <div className="text-[9px] text-gray-400 leading-tight">{item.sub}</div>
-                </div>
-              ))}
+        <div className="flex-1 overflow-y-auto p-3.5 space-y-2.5 pb-32">
+          {/* Type Selection - Static Points Only */}
+          <Card className="p-3 border-none shadow-sm bg-white rounded-2xl flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-full bg-donghai/10 flex items-center justify-center">
+                <Coins className="w-4 h-4 text-donghai" />
+              </div>
+              <div>
+                <h3 className="text-xs font-bold text-gray-800">赔付类型</h3>
+                <p className="text-[9px] text-gray-400 mt-0.5">发放至会员账户</p>
+              </div>
             </div>
+            <Badge className="bg-donghai text-white text-[10px] font-bold border-none px-2.5 py-1">
+              积分赔付
+            </Badge>
           </Card>
 
           {/* Flight Info */}
-          <Card className="p-4 border-none shadow-sm bg-white rounded-2xl space-y-4">
+          <Card className="p-3 border-none shadow-sm bg-white rounded-2xl space-y-2.5">
             <h3 className="text-xs font-bold text-gray-800">航班信息</h3>
-            <div className="space-y-3">
-              <div className="flex items-center gap-3 bg-gray-50 rounded-xl px-4 h-12">
-                <Plane className="w-4 h-4 text-gray-400" />
+            <div className="space-y-2">
+              <div className="flex items-center gap-2.5 bg-gray-50 rounded-xl px-3 h-10">
+                <Plane className="w-3.5 h-3.5 text-gray-400" />
                 <input 
                   type="text" 
                   value={flightNo}
@@ -359,8 +277,8 @@ export default function Compensation({ onBack }: { onBack: () => void }) {
                   className="flex-1 bg-transparent text-xs text-gray-800 focus:outline-none"
                 />
               </div>
-              <div className="flex items-center gap-3 bg-gray-50 rounded-xl px-4 h-12">
-                <Calendar className="w-4 h-4 text-gray-400" />
+              <div className="flex items-center gap-2.5 bg-gray-50 rounded-xl px-3 h-10">
+                <Calendar className="w-3.5 h-3.5 text-gray-400" />
                 <input 
                   type="date" 
                   value={flightDate}
@@ -372,11 +290,11 @@ export default function Compensation({ onBack }: { onBack: () => void }) {
           </Card>
 
           {/* Passenger Info */}
-          <Card className="p-4 border-none shadow-sm bg-white rounded-2xl space-y-4">
+          <Card className="p-3 border-none shadow-sm bg-white rounded-2xl space-y-2.5 relative z-40 overflow-visible">
             <h3 className="text-xs font-bold text-gray-800">乘机人信息</h3>
-            <div className="space-y-3">
-              <div className="flex items-center gap-3 bg-gray-50 rounded-xl px-4 h-12">
-                <User className="w-4 h-4 text-gray-400" />
+            <div className="space-y-2.5">
+              <div className="flex items-center gap-2.5 bg-gray-50 rounded-xl px-3 h-10">
+                <User className="w-3.5 h-3.5 text-gray-400" />
                 <input 
                   type="text" 
                   value={passengerName}
@@ -385,13 +303,90 @@ export default function Compensation({ onBack }: { onBack: () => void }) {
                   className="flex-1 bg-transparent text-xs text-gray-800 focus:outline-none"
                 />
               </div>
-              <div className="flex items-center gap-3 bg-gray-50 rounded-xl px-4 h-12">
-                <FileText className="w-4 h-4 text-gray-400" />
+
+              {/* 证件类型选择 */}
+              <div className="relative">
+                <div 
+                  onClick={() => setIsIdTypeDrawerOpen(!isIdTypeDrawerOpen)}
+                  className="flex items-center justify-between bg-gray-50 rounded-xl px-3 h-10 cursor-pointer hover:bg-gray-100/50 active:scale-[0.99] transition-all duration-150"
+                >
+                  <div className="flex items-center gap-2">
+                    <CreditCard className="w-3.5 h-3.5 text-gray-400" />
+                    <span className="text-xs text-gray-500 font-medium">证件类型</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 bg-white border border-gray-100 px-2.5 py-1 rounded-lg shadow-xs h-7">
+                    <span className="text-xs text-gray-800 font-semibold">
+                      {passengerIdType === 'idCard' ? '身份证' : '护照'}
+                    </span>
+                    <ChevronDown className={`w-3.5 h-3.5 text-gray-400 transition-transform duration-200 ${isIdTypeDrawerOpen ? 'rotate-180 text-donghai' : ''}`} />
+                  </div>
+                </div>
+
+                <AnimatePresence>
+                  {isIdTypeDrawerOpen && (
+                    <>
+                      {/* Invisible clickable layer to dismiss dropdown */}
+                      <div 
+                        className="fixed inset-0 z-40" 
+                        onClick={() => setIsIdTypeDrawerOpen(false)}
+                      />
+                      
+                      {/* Compact, elegant inline popover select list - positioned downwards */}
+                      <motion.div
+                        initial={{ opacity: 0, y: -8, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: -8, scale: 0.95 }}
+                        transition={{ duration: 0.15, ease: "easeOut" }}
+                        className="absolute right-0 top-full bg-white border border-gray-100 rounded-xl shadow-[0_10px_25px_-5px_rgba(0,0,0,0.08),0_8px_10px_-6px_rgba(0,0,0,0.08)] p-1 z-50 w-36 space-y-0.5 animate-in fade-in zoom-in-95 duration-150 mt-1"
+                      >
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setPassengerIdType('idCard');
+                            setIsIdTypeDrawerOpen(false);
+                          }}
+                          className={`w-full flex items-center justify-between px-3 py-1.5 text-xs rounded-lg transition-colors cursor-pointer ${
+                            passengerIdType === 'idCard'
+                              ? 'bg-donghai/10 text-donghai font-bold'
+                              : 'text-gray-700 hover:bg-gray-50'
+                          }`}
+                        >
+                          <span className="font-medium">身份证</span>
+                          {passengerIdType === 'idCard' && (
+                            <Check className="w-3.5 h-3.5 text-donghai stroke-[3]" />
+                          )}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setPassengerIdType('passport');
+                            setIsIdTypeDrawerOpen(false);
+                          }}
+                          className={`w-full flex items-center justify-between px-3 py-1.5 text-xs rounded-lg transition-colors cursor-pointer ${
+                            passengerIdType === 'passport'
+                              ? 'bg-donghai/10 text-donghai font-bold'
+                              : 'text-gray-700 hover:bg-gray-50'
+                          }`}
+                        >
+                          <span className="font-medium">护照</span>
+                          {passengerIdType === 'passport' && (
+                            <Check className="w-3.5 h-3.5 text-donghai stroke-[3]" />
+                          )}
+                        </button>
+                      </motion.div>
+                    </>
+                  )}
+                </AnimatePresence>
+              </div>
+
+              {/* 证件号码输入 */}
+              <div className="flex items-center gap-2.5 bg-gray-50 rounded-xl px-3 h-10">
+                <FileText className="w-3.5 h-3.5 text-gray-400" />
                 <input 
                   type="text" 
                   value={passengerIdCard}
                   onChange={(e) => setPassengerIdCard(e.target.value)}
-                  placeholder="乘机人身份证号"
+                  placeholder={passengerIdType === 'idCard' ? "乘机人身份证号" : "乘机人护照号"}
                   className="flex-1 bg-transparent text-xs text-gray-800 focus:outline-none"
                 />
               </div>
@@ -399,15 +394,15 @@ export default function Compensation({ onBack }: { onBack: () => void }) {
           </Card>
 
           {/* Reason */}
-          <Card className="p-4 border-none shadow-sm bg-white rounded-2xl space-y-4">
+          <Card className="p-3 border-none shadow-sm bg-white rounded-2xl space-y-2.5">
             <h3 className="text-xs font-bold text-gray-800">赔付原因</h3>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-1.5">
               {REASONS.map((r) => (
                 <Badge 
                   key={r}
                   onClick={() => setReason(r)}
                   variant={reason === r ? 'default' : 'outline'}
-                  className={`cursor-pointer h-7 px-3 rounded-full text-[10px] ${
+                  className={`cursor-pointer h-6 px-2.5 rounded-full text-[10px] ${
                     reason === r ? 'bg-donghai text-white' : 'border-gray-100 text-gray-500'
                   }`}
                 >
@@ -419,36 +414,36 @@ export default function Compensation({ onBack }: { onBack: () => void }) {
               value={reason}
               onChange={(e) => setReason(e.target.value)}
               placeholder="请详细描述赔付原因..."
-              className="w-full h-24 bg-gray-50 rounded-xl p-3 text-xs text-gray-800 focus:outline-none focus:ring-1 focus:ring-donghai/30 resize-none"
+              className="w-full h-20 bg-gray-50 rounded-xl p-2.5 text-xs text-gray-800 focus:outline-none focus:ring-1 focus:ring-donghai/30 resize-none"
             />
           </Card>
 
           {/* Images */}
-          <Card className="p-4 border-none shadow-sm bg-white rounded-2xl space-y-4">
+          <Card className="p-3 border-none shadow-sm bg-white rounded-2xl space-y-2">
             <div className="flex items-center justify-between">
               <h3 className="text-xs font-bold text-gray-800">证明材料</h3>
               <span className="text-[10px] text-gray-400">{images.length}/5</span>
             </div>
             <p className="text-[9px] text-gray-400 leading-tight">请上传航班延误/取消通知、登机牌、身份证等证明材料</p>
-            <div className="flex flex-wrap gap-3">
+            <div className="flex flex-wrap gap-2 pt-1">
               {images.map((img, i) => (
-                <div key={i} className="relative w-16 h-16 rounded-xl overflow-hidden group">
+                <div key={i} className="relative w-14 h-14 rounded-lg overflow-hidden group">
                   <img src={img} alt="upload" className="w-full h-full object-cover" />
                   <div 
                     onClick={() => setImages(images.filter((_, idx) => idx !== i))}
-                    className="absolute top-1 right-1 bg-black/50 rounded-full p-1 cursor-pointer"
+                    className="absolute top-0.5 right-0.5 bg-black/50 rounded-full p-0.5 cursor-pointer"
                   >
-                    <X className="w-3 h-3 text-white" />
+                    <X className="w-2.5 h-2.5 text-white" />
                   </div>
                 </div>
               ))}
               {images.length < 5 && (
                 <div 
                   onClick={handleUpload}
-                  className="w-16 h-16 rounded-xl border-2 border-dashed border-gray-100 flex flex-col items-center justify-center text-gray-300 active:bg-gray-50"
+                  className="w-14 h-14 rounded-lg border border-dashed border-gray-200 flex flex-col items-center justify-center text-gray-300 active:bg-gray-50"
                 >
-                  <Camera className="w-5 h-5 mb-1" />
-                  <span className="text-[8px]">上传图片</span>
+                  <Camera className="w-4 h-4 text-gray-400 mb-0.5" />
+                  <span className="text-[8px] text-gray-400">上传图片</span>
                 </div>
               )}
             </div>
@@ -464,6 +459,8 @@ export default function Compensation({ onBack }: { onBack: () => void }) {
             {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : '提交申请'}
           </Button>
         </div>
+
+
       </div>
     );
   }
@@ -583,8 +580,12 @@ export default function Compensation({ onBack }: { onBack: () => void }) {
                 <span className="text-gray-800">{selectedRecord.passengerName}</span>
               </div>
               <div className="flex justify-between text-xs">
-                <span className="text-gray-400">身份证号</span>
-                <span className="text-gray-800">{selectedRecord.passengerIdCard}</span>
+                <span className="text-gray-400">
+                  {selectedRecord.passengerIdCard.startsWith('[护照]') ? '护照号' : '身份证号'}
+                </span>
+                <span className="text-gray-800">
+                  {selectedRecord.passengerIdCard.replace(/^\[(身份证|护照)\]\s*/, '')}
+                </span>
               </div>
               <div className="flex justify-between text-xs">
                 <span className="text-gray-400">赔付原因</span>

@@ -26,7 +26,10 @@ import {
   AlertCircle,
   Heart,
   CheckCircle2,
-  Plane
+  Plane,
+  Coins,
+  Lock,
+  MapPin
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import EditProfileModal from './EditProfileModal';
@@ -34,10 +37,9 @@ import MessageCenter from './MessageCenter';
 import HelpCenter from './HelpCenter';
 import Favorites from './Favorites';
 import AddressManagement from './AddressManagement';
-import SettingsView from './Settings';
 import Feedback from './Feedback';
 
-export default function Profile({ onCheckout, onTabChange, onShowAfterSales, onShowCompensation, onShowEmployeeAuth, onShowEmployeeMall, onShowInternalOrders, onShowPointsCenter, onShowPointsMall, onShowLogin, onShowCustomerService, initialSettingSubPage = null, clearInitialSettingSubPage }: { 
+export default function Profile({ onCheckout, onTabChange, onShowAfterSales, onShowCompensation, onShowEmployeeAuth, onShowEmployeeMall, onShowInternalOrders, onShowPointsCenter, onShowPointsMall, onShowLogin, onShowCustomerService, onShowSettings, onShowPayPassword }: { 
   onCheckout: (items: any[]) => void, 
   onTabChange: (tab: any, id?: string) => void, 
   onShowAfterSales: () => void, 
@@ -49,8 +51,8 @@ export default function Profile({ onCheckout, onTabChange, onShowAfterSales, onS
   onShowPointsMall: () => void,
   onShowLogin: () => void,
   onShowCustomerService: () => void,
-  initialSettingSubPage?: string | null,
-  clearInitialSettingSubPage?: () => void
+  onShowSettings: () => void,
+  onShowPayPassword: () => void
 }) {
   const { isLoggedIn, userInfo, logout } = useAuth();
 
@@ -67,15 +69,8 @@ export default function Profile({ onCheckout, onTabChange, onShowAfterSales, onS
   const [showHelp, setShowHelp] = useState(false);
   const [showFavorites, setShowFavorites] = useState(false);
   const [showAddresses, setShowAddresses] = useState(false);
-  const [showSettings, setShowSettings] = useState(!!initialSettingSubPage);
   const [showFeedback, setShowFeedback] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    if (initialSettingSubPage) {
-      setShowSettings(true);
-    }
-  }, [initialSettingSubPage]);
 
   useEffect(() => {
     if (isLoggedIn) {
@@ -108,10 +103,6 @@ export default function Profile({ onCheckout, onTabChange, onShowAfterSales, onS
 
   if (showAddresses) {
     return <AddressManagement onBack={() => setShowAddresses(false)} />;
-  }
-
-  if (showSettings) {
-    return <SettingsView onBack={() => setShowSettings(false)} initialSubPage={initialSettingSubPage} />;
   }
 
   if (showFeedback) {
@@ -152,37 +143,37 @@ export default function Profile({ onCheckout, onTabChange, onShowAfterSales, onS
 
   return (
     <div className="flex flex-col h-full bg-gray-50">
-      {/* Header */}
-      <div className="bg-donghai text-white px-6 pt-16 pb-16 relative overflow-hidden">
+      {/* Header with a rich premium gradient, increased height and breathing room */}
+      <div className="bg-gradient-to-b from-[#006687] to-[#00516b] text-white px-6 pt-16 pb-24 relative overflow-hidden">
         <div className="flex items-start justify-between mb-6 relative z-10">
           <div className="flex items-center gap-4">
             <div className="relative">
               <img 
                 src={userInfo?.avatar || 'https://picsum.photos/seed/avatar/100/100'} 
                 alt="avatar" 
-                className="w-16 h-16 rounded-full border-2 border-white/30 shadow-lg object-cover"
+                className="w-16 h-16 rounded-full border-2 border-white/50 shadow-md object-cover"
               />
               {userInfo?.isEmployee && (
-                <div className="absolute -bottom-1 -right-1 bg-yellow-400 rounded-full p-1 border-2 border-donghai z-20">
+                <div className="absolute -bottom-1 -right-1 bg-yellow-400 rounded-full p-1 border-2 border-[#00516b] z-20 shadow">
                   <ShieldCheck className="w-3 h-3 text-donghai" />
                 </div>
               )}
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-xl font-bold">{userInfo?.nickname}</h2>
+                <h2 className="text-xl font-bold tracking-wide">{userInfo?.nickname}</h2>
                 <Button 
                   variant="ghost" 
                   size="icon" 
                   onClick={() => setShowEditModal(true)}
-                  className="w-6 h-6 rounded-full bg-white/10 hover:bg-white/20 p-0"
+                  className="w-6 h-6 rounded-full bg-white/15 hover:bg-white/25 p-0 transition-colors"
                 >
-                  <Edit3 className="w-3 h-3" />
+                  <Edit3 className="w-3 h-3 text-white/95" />
                 </Button>
               </div>
               <div className="flex items-center gap-2 mt-1">
                 {userInfo && userInfo.isEmployee && userInfo.employeeAuth?.status === 'approved' && (
-                  <div className="border border-white/40 text-white bg-white/20 px-1.5 py-0.5 rounded-full text-[9px] font-medium backdrop-blur-sm">
+                  <div className="border border-white/30 text-white bg-white/15 px-2 py-0.5 rounded-full text-[9px] font-medium backdrop-blur-sm tracking-wider">
                     已认证员工
                   </div>
                 )}
@@ -190,97 +181,55 @@ export default function Profile({ onCheckout, onTabChange, onShowAfterSales, onS
             </div>
           </div>
           <div className="flex gap-4">
-            <Settings className="w-5 h-5 opacity-70 cursor-pointer" onClick={() => {
-              clearInitialSettingSubPage?.();
-              setShowSettings(true);
-            }} />
           </div>
         </div>
 
-        {/* Points Card */}
-        <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 flex items-center justify-between relative z-10 border border-white/10 mb-0">
+        {/* Points Card with premium glassmorphic effect */}
+        <div className="bg-white/12 backdrop-blur-md rounded-2xl p-4 flex items-center justify-between relative z-10 border border-white/15 mb-0 shadow-lg">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-yellow-400/20 flex items-center justify-center">
-              <Star className="w-5 h-5 text-yellow-400 fill-yellow-400" />
+            <div className="w-10 h-10 rounded-full bg-yellow-400/25 flex items-center justify-center shadow-inner">
+              <Star className="w-5 h-5 text-yellow-400 fill-yellow-400 animate-pulse" />
             </div>
             <div>
-              <div className="text-xs opacity-70">积分余额</div>
-              <div className="text-lg font-bold">{userInfo?.points}</div>
+              <div className="text-[10px] text-white/70 font-medium uppercase tracking-wider">积分余额</div>
+              <div className="text-xl font-bold text-yellow-300 tracking-tight">{userInfo?.points}</div>
             </div>
           </div>
           <div className="text-right">
-            <div className="text-[10px] opacity-60">有效期至: {userInfo?.pointsExpiry}</div>
+            <div className="text-[10px] text-white/60">有效期至: {userInfo?.pointsExpiry}</div>
             <div className="flex flex-col items-end gap-1 mt-1">
               <Button 
                 onClick={onShowPointsCenter}
-                className="bg-yellow-400 text-donghai text-[10px] font-bold h-6 px-3 rounded-full hover:bg-yellow-300"
+                className="bg-yellow-400 text-donghai text-[10px] font-bold h-6 px-3.5 rounded-full hover:bg-yellow-300 shadow-sm transition-all active:scale-95"
               >
                 积分中心
               </Button>
-              <Button variant="link" className="text-white text-[10px] p-0 h-auto" onClick={onShowPointsCenter}>积分明细 &gt;</Button>
+              <Button variant="link" className="text-white/80 hover:text-white text-[10px] p-0 h-auto font-medium transition-colors" onClick={onShowPointsCenter}>积分明细 &gt;</Button>
             </div>
           </div>
         </div>
 
         {/* Decorative background logo */}
-        <div className="absolute top-0 right-0 w-48 h-48 opacity-10 -mr-12 -mt-12 pointer-events-none">
+        <div className="absolute top-0 right-0 w-48 h-48 opacity-[0.08] -mr-12 -mt-12 pointer-events-none">
           <Plane className="w-full h-full text-white" />
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="px-4 mt-4 relative z-20 pb-20 space-y-2">
+      {/* Main Content overlapping the header with a modern, clean card layout */}
+      <div className="px-4 -mt-3 relative z-20 pb-20 space-y-3">
         
         {/* Order Management */}
-        <Card className="p-3 border-none shadow-sm bg-white rounded-2xl active:bg-gray-50 transition-colors">
-          <div className="flex items-center justify-between mb-3" onClick={() => onTabChange('orders')}>
+        <Card className="py-2.5 px-3.5 border-none shadow-sm bg-white rounded-2xl active:bg-gray-50 transition-colors">
+          <div className="flex items-center justify-between mb-2" onClick={() => onTabChange('orders')}>
             <h3 className="text-sm font-bold text-gray-800">订单管理</h3>
             <div className="flex items-center text-[10px] text-gray-400">
               全部订单 <ChevronRight className="w-3 h-3" />
             </div>
           </div>
-          <div className="flex items-center justify-around mb-4">
+          <div className="flex items-center justify-around mb-0.5">
             {orderTabs.map((tab: any, i) => (
               <div key={i} className="text-center flex-1 relative" onClick={tab.onClick || (() => onTabChange('orders'))}>
-                <div className="text-lg font-bold text-gray-800">{tab.count || 0}</div>
-                <div className="text-[10px] text-gray-400 mt-0.5">{tab.label}</div>
-              </div>
-            ))}
-          </div>
-          <div className="flex items-center gap-2">
-            {[
-              { label: '实物订单', onClick: () => onTabChange('orders') },
-              { label: '内购订单', onClick: onShowInternalOrders },
-              { label: '地址管理', onClick: () => setShowAddresses(true) }
-            ].map((item) => (
-              <Button 
-                key={item.label} 
-                variant="ghost"
-                onClick={item.onClick}
-                className="flex-1 h-8 bg-gray-50 hover:bg-gray-100 rounded-full text-[10px] text-gray-600 font-medium border-none"
-              >
-                {item.label}
-              </Button>
-            ))}
-          </div>
-        </Card>
-
-        {/* Compensation Records */}
-        <Card className="p-3 border-none shadow-sm bg-white rounded-2xl active:bg-gray-50 transition-colors" onClick={onShowCompensation}>
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-bold text-gray-800">赔付记录</h3>
-            <div className="flex items-center text-[10px] text-gray-400">
-              查看详情 <ChevronRight className="w-3 h-3" />
-            </div>
-          </div>
-          <div className="flex items-center justify-around">
-            {[
-              { label: '待审核', count: userInfo?.compensationCounts.pendingAudit || 0 },
-              { label: '赔付中', count: userInfo?.compensationCounts.processing || 0 },
-              { label: '已到账', count: userInfo?.compensationCounts.completed || 0 },
-            ].map((tab, i) => (
-              <div key={i} className="text-center">
-                <div className="text-lg font-bold text-gray-800">{tab.count}</div>
+                <div className="text-base font-bold text-gray-800">{tab.count || 0}</div>
                 <div className="text-[10px] text-gray-400 mt-0.5">{tab.label}</div>
               </div>
             ))}
@@ -290,13 +239,34 @@ export default function Profile({ onCheckout, onTabChange, onShowAfterSales, onS
         {/* Menu List */}
         <Card className="overflow-hidden border-none shadow-sm bg-white rounded-2xl">
           {[
-            { icon: Heart, label: '我的收藏', extra: `${userInfo?.favorites?.length || 0}件`, onClick: () => setShowFavorites(true) },
-            { icon: HelpCircle, label: '帮助中心', extra: '', onClick: () => setShowHelp(true) },
-            { icon: MessageSquare, label: '意见反馈', extra: '', onClick: () => setShowFeedback(true) },
-            { icon: Settings, label: '设置', extra: '', onClick: () => {
-              clearInitialSettingSubPage?.();
-              setShowSettings(true);
-            } },
+            { icon: Coins, label: '积分中心', extra: '', onClick: onShowPointsCenter },
+            { icon: ShieldCheck, label: '旅客赔付', extra: '', onClick: onShowCompensation },
+            { 
+              icon: ShieldCheck, 
+              label: '员工认证', 
+              extra: userInfo?.employeeAuth?.status === 'approved' ? '已认证' :
+                     userInfo?.employeeAuth?.status === 'pending' ? '审核中' :
+                     userInfo?.employeeAuth?.status === 'rejected' ? '未通过' : '未认证',
+              extraClass: userInfo?.employeeAuth?.status === 'approved' ? 'text-green-500' :
+                          userInfo?.employeeAuth?.status === 'pending' ? 'text-orange-500' :
+                          userInfo?.employeeAuth?.status === 'rejected' ? 'text-red-500' :
+                          'text-gray-400',
+              onClick: onShowEmployeeAuth 
+            },
+            { 
+              icon: Lock, 
+              label: '设置支付密码', 
+              extra: userInfo?.paymentPassword ? '已设置' : '未设置',
+              extraClass: userInfo?.paymentPassword ? 'text-green-500' : 'text-gray-400',
+              onClick: onShowPayPassword 
+            },
+            { 
+              icon: MapPin, 
+              label: '地址管理', 
+              extra: '', 
+              onClick: () => setShowAddresses(true) 
+            },
+            { icon: Headphones, label: '联系客服', extra: '', onClick: onShowCustomerService },
           ].map((item, index, arr) => {
             const Icon = item.icon;
             return (
@@ -314,7 +284,7 @@ export default function Profile({ onCheckout, onTabChange, onShowAfterSales, onS
                   <span className="text-sm text-gray-800">{item.label}</span>
                 </div>
                 <div className="flex items-center gap-1">
-                  <span className={`text-xs ${item.extra === '去认证' ? 'text-donghai font-medium' : 'text-gray-400'}`}>
+                  <span className={`text-xs ${item.extraClass || 'text-gray-400'}`}>
                     {item.extra}
                   </span>
                   <ChevronRight className="w-4 h-4 text-gray-300" />
@@ -346,8 +316,7 @@ export default function Profile({ onCheckout, onTabChange, onShowAfterSales, onS
               exit={{ scale: 0.9, opacity: 0 }}
               className="bg-white w-full rounded-3xl p-6 text-center shadow-2xl"
             >
-              <h3 className="text-lg font-bold mb-2">确认退出</h3>
-              <p className="text-sm text-gray-500 mb-6">退出后将无法查看个人隐私信息，确认退出登录吗？</p>
+              <h3 className="text-lg font-bold mb-6">确认退出</h3>
               <div className="grid grid-cols-2 gap-3">
                 <Button 
                   variant="outline" 
