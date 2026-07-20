@@ -32,8 +32,8 @@ interface SearchPageProps {
   setSearchExecuted: (val: boolean) => void;
   lastSearchedKeyword: string;
   setLastSearchedKeyword: (val: string) => void;
-  sortBy: 'default' | 'price-asc' | 'price-desc' | 'sales';
-  setSortBy: (val: 'default' | 'price-asc' | 'price-desc' | 'sales') => void;
+  sortBy: 'price-asc' | 'price-desc';
+  setSortBy: (val: 'price-asc' | 'price-desc') => void;
   filterType: 'all' | 'physical' | 'internal' | 'points';
   setFilterType: (val: 'all' | 'physical' | 'internal' | 'points') => void;
   showFilters: boolean;
@@ -116,9 +116,7 @@ export default function SearchPage({
       filtered = filtered.filter(p => p.type === filterType);
     }
 
-    if (sortBy === 'sales') {
-      filtered.sort((a, b) => b.sales - a.sales);
-    } else if (sortBy === 'price-asc') {
+    if (sortBy === 'price-asc') {
       filtered.sort((a, b) => (a.price || (a as any).points || 0) - (b.price || (b as any).points || 0));
     } else if (sortBy === 'price-desc') {
       filtered.sort((a, b) => (b.price || (b as any).points || 0) - (a.price || (a as any).points || 0));
@@ -183,57 +181,18 @@ export default function SearchPage({
           <div className="flex items-center gap-6">
             <button 
               onClick={() => {
-                const next = sortBy === 'default' ? 'sales' : sortBy === 'sales' ? 'price-asc' : sortBy === 'price-asc' ? 'price-desc' : 'default';
+                const next = sortBy === 'price-asc' ? 'price-desc' : 'price-asc';
                 setSortBy(next);
               }}
-              className={`text-xs flex items-center gap-1 ${sortBy !== 'default' ? 'text-donghai font-bold' : 'text-gray-500'}`}
+              className="text-xs flex items-center gap-1 text-donghai font-bold"
             >
-              {sortBy === 'sales' ? '销量优先' : sortBy.includes('price') ? '价格排序' : '综合排序'}
+              {sortBy === 'price-asc' ? '价格升序' : '价格降序'}
               <ArrowUpDown className="w-3 h-3" />
-            </button>
-            <button 
-              onClick={() => setShowFilters(!showFilters)}
-              className={`text-xs flex items-center gap-1 ${filterType !== 'all' ? 'text-donghai font-bold' : 'text-gray-500'}`}
-            >
-              筛选
-              <Filter className="w-3 h-3" />
             </button>
           </div>
           <span className="text-[10px] text-gray-400">找到 {results.length} 件商品</span>
         </div>
       )}
-
-      {/* Filter Panel */}
-      <AnimatePresence>
-        {searchExecuted && showFilters && (
-          <motion.div 
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            className="bg-white border-b overflow-hidden shrink-0 z-[40]"
-          >
-            <div className="p-4 flex flex-wrap gap-2">
-              {[
-                { id: 'all', label: '全部' },
-                { id: 'physical', label: '实物商品' },
-                { id: 'internal', label: '内购商品' },
-                { id: 'points', label: '积分兑换' },
-              ].filter(f => f.id !== 'internal' || (userInfo?.isEmployee && userInfo?.employeeAuth?.status === 'approved')).map(f => (
-                <Badge 
-                  key={f.id}
-                  onClick={() => {
-                    setFilterType(f.id as any);
-                    setShowFilters(false);
-                  }}
-                  className={`px-4 py-1.5 rounded-full cursor-pointer border-none ${filterType === f.id ? 'bg-donghai text-white' : 'bg-gray-100 text-gray-500'}`}
-                >
-                  {f.label}
-                </Badge>
-              ))}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       {/* Results */}
       <div className="flex-1 overflow-y-auto p-4 pb-32 relative">

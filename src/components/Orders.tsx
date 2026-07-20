@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import { NumericKeypad } from './NumericKeypad';
+import React, { useState, useRef } from 'react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -287,6 +288,8 @@ const LogisticsDetail = ({ order, onBack }: { order: Order, onBack: () => void }
 };
 
 // Order Detail View
+import { createPortal } from 'react-dom';
+
 const OrderDetail = ({ order, onBack, onShowLogistics, onApplyAfterSales, onPay, isPaying, onDelete, onCheckout, onProductClick }: { order: Order, onBack: () => void, onShowLogistics: () => void, onApplyAfterSales: (productId: string) => void, onPay: (order: Order) => void, isPaying: boolean, onDelete: (orderId: string) => void, onCheckout?: (items: any[]) => void, onProductClick?: (item: any) => void }) => {
   const { updateOrderStatus, shipOrder, userInfo } = useAuth();
   const [copiedTracking, setCopiedTracking] = useState(false);
@@ -451,7 +454,6 @@ const OrderDetail = ({ order, onBack, onShowLogistics, onApplyAfterSales, onPay,
         )}
         {order.status === 'pendingShipment' && (
           <>
-            <Button variant="outline" className="rounded-full text-xs h-9 px-6 border-gray-200">修改地址</Button>
             <Button 
               className="rounded-full text-xs h-9 px-6 bg-orange-500 text-white hover:bg-orange-600"
               onClick={() => shipOrder(order.id)}
@@ -516,7 +518,8 @@ export default function Orders({
   onTabChange,
   onShowLogin,
   onShowCustomerService,
-  onShowEmployeeAuth
+  onShowEmployeeAuth,
+  onShowPayPassword
 }: { 
   onApplyAfterSales: (orderId: string, productId: string) => void, 
   onBack?: () => void, 
@@ -527,7 +530,8 @@ export default function Orders({
   onTabChange?: (tab: any) => void,
   onShowLogin?: (step?: 'auth' | 'phone') => void,
   onShowCustomerService?: () => void,
-  onShowEmployeeAuth?: () => void
+  onShowEmployeeAuth?: () => void,
+  onShowPayPassword?: () => void
 }) {
   const { isLoggedIn, userInfo, updateOrderStatus, shipOrder, purchasePoints, deleteOrder } = useAuth();
   const [activeTab, setActiveTab] = useState('all');
@@ -538,6 +542,24 @@ export default function Orders({
   const [orderToPay, setOrderToPay] = useState<Order | null>(null);
   const [orderIdToDelete, setOrderIdToDelete] = useState<string | null>(null);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+
+  const [passwordStep, setPasswordStep] = useState<'idle' | 'input' | 'need_setup'>('idle');
+  const [passwordInput, setPasswordInput] = useState('');
+  const [passwordError, setPasswordError] = useState('');
+
+  React.useEffect(() => {
+    if (passwordStep === 'input' && passwordInput.length === 6) {
+      const correctPassword = userInfo?.paymentPassword || userInfo?.payPassword;
+      if (passwordInput === correctPassword) {
+        setPasswordError('');
+        setPasswordStep('idle');
+        executePayment();
+      } else {
+        setPasswordError('支付密码错误，请重新输入');
+        setPasswordInput('');
+      }
+    }
+  }, [passwordInput, passwordStep, userInfo?.paymentPassword, userInfo?.payPassword]);
 
   const handleProductClick = (orderItem: any) => {
     const allProducts = [...DETAILED_PRODUCTS, ...POINTS_PRODUCTS, ...INTERNAL_PRODUCTS];
@@ -585,7 +607,7 @@ export default function Orders({
     setPayingOrderId(orderToPay.id);
     try {
       // Check if it's a points purchase
-      const pointsItem = orderToPay.items.find(item => item.productId.startsWith('points_topup_'));
+      const pointsItem = orderToPay.items.find(item => item.productId && item.productId.startsWith('points_topup_'));
       if (pointsItem) {
         const pointsMatch = pointsItem.productId.match(/points_topup_(\d+)/);
         const pointsToBuy = pointsMatch ? parseInt(pointsMatch[1]) : 0;
@@ -613,6 +635,7 @@ export default function Orders({
     }
   };
 
+  const renderMain = () => {
   if (!isLoggedIn) {
     return (
       <div className="flex flex-col h-full bg-gray-50">
@@ -749,112 +772,186 @@ export default function Orders({
         </Tabs>
       </div>
 
-      {/* Payment Cashier Overlay */}
-      <AnimatePresence>
-        {showCashier && orderToPay && (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] bg-black/60 flex items-end justify-center"
-          >
-            <motion.div 
-              initial={{ y: '100%' }}
-              animate={{ y: 0 }}
-              exit={{ y: '100%' }}
-              className="bg-white w-full rounded-t-3xl p-6 pb-12 space-y-6 max-w-md"
-            >
-              <div className="flex items-center justify-between border-b pb-4">
-                <X className="w-5 h-5 text-gray-400 cursor-pointer" onClick={() => {
-                  setShowCashier(false);
-                  setOrderToPay(null);
-                }} />
-                <span className="font-bold">收银台</span>
-                <div className="w-5" />
-              </div>
-              
-              <div className="text-center space-y-1">
-                <div className="text-3xl font-bold">{orderToPay.totalPoints || orderToPay.totalAmount} 积分</div>
-                <div className="text-xs text-gray-400">东海航空-订单支付 (单号:{orderToPay.id})</div>
-              </div>
+          </div>
+  );
+  };
 
-              <div className="space-y-4">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-gray-500">支付方式</span>
-                  <div className="flex items-center gap-2">
-                    <img src="https://img.icons8.com/color/48/weixing.png" alt="wechat" className="w-5 h-5 rounded-sm" />
-                    <span className="font-medium">微信支付</span>
-                  </div>
-                </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-gray-500">订单内容</span>
-                  <span className="font-medium truncate max-w-[200px]">{orderToPay.items[0].name}{orderToPay.items.length > 1 ? ` 等${orderToPay.items.length}件` : ''}</span>
-                </div>
-              </div>
-
-              <Button 
-                className="w-full bg-[#07C160] hover:bg-[#06ae56] text-white h-12 rounded-xl font-bold mt-4"
-                onClick={executePayment}
-                disabled={payingOrderId === orderToPay.id}
-              >
-                {payingOrderId === orderToPay.id ? <Loader2 className="w-6 h-6 animate-spin" /> : '立即支付'}
-              </Button>
-              
-              <div className="flex flex-col items-center gap-2 text-[10px] text-gray-400">
-                <div className="flex items-center gap-1">
-                  <div className="w-3 h-3 rounded-full bg-donghai/10 flex items-center justify-center">
-                    <div className="w-1 h-1 rounded-full bg-donghai" />
-                  </div>
-                  <span>安全支付环境，保障您的资金安全</span>
-                </div>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Delete Confirmation Dialog */}
-      <AnimatePresence>
-        {orderIdToDelete && (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[150] bg-black/60 flex items-center justify-center px-8"
-          >
-            <motion.div 
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-white w-full max-w-xs rounded-3xl p-6 text-center shadow-2xl"
-            >
-              <h3 className="text-base font-bold mb-3 text-gray-800">删除订单</h3>
-              <p className="text-xs text-gray-500 mb-6 font-medium leading-relaxed">确定要删除该订单吗？<br/>删除后将无法恢复。</p>
-              <div className="grid grid-cols-2 gap-3">
-                <Button 
-                  variant="outline" 
-                  onClick={() => setOrderIdToDelete(null)}
-                  className="rounded-xl h-10 text-xs border-gray-200"
-                >
-                  取消
-                </Button>
-                <Button 
-                  onClick={async () => {
-                    if (orderIdToDelete) {
-                      await deleteOrder(orderIdToDelete);
-                      setOrderIdToDelete(null);
-                      setSelectedOrder(null);
-                    }
-                  }}
-                  className="rounded-xl h-10 text-xs bg-red-500 hover:bg-red-600 text-white font-bold"
-                >
-                  确认删除
-                </Button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
+  return (
+    <>
+      {renderMain()}
+      
+      {typeof window !== 'undefined' && document.body ? createPortal(
+        <>
+          {/* Payment Cashier Overlay */}
+                <AnimatePresence>
+                  {showCashier && orderToPay && (
+                    <motion.div 
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="fixed inset-0 z-[200] bg-black/60 flex items-end justify-center"
+                    >
+                      <motion.div 
+                        initial={{ y: '100%' }}
+                        animate={{ y: 0 }}
+                        exit={{ y: '100%' }}
+                        className="bg-white w-full rounded-t-[32px] p-4 pb-6 max-w-md"
+                      >
+                        <div className="flex items-center justify-between mb-4">
+                          <X className="w-6 h-6 text-gray-300 cursor-pointer" onClick={() => {
+                            setShowCashier(false);
+                            setOrderToPay(null);
+                            setPasswordStep('idle');
+                            setPasswordInput('');
+                            setPasswordError('');
+                          }} />
+                          <span className="text-lg font-bold">收银台</span>
+                          <div className="w-6" />
+                        </div>
+                        
+                        <div className="text-center mb-4">
+                          <div className="flex flex-col items-center mb-4">
+                            <div className="flex items-baseline gap-1 mb-1">
+                              <span className="text-4xl font-bold">{orderToPay.totalPoints || orderToPay.totalAmount}</span>
+                              <span className="text-sm font-bold text-gray-800">积分</span>
+                            </div>
+                            <div className="text-xs text-gray-400 mt-1">东海航空-订单支付</div>
+                          </div>
+                        </div>
+          
+                        {passwordStep === 'idle' ? (
+                          <>
+                            <div className="space-y-4 py-4 border-y mb-6">
+                              <div className="flex items-center justify-between text-sm">
+                                <span className="text-gray-500">支付方式</span>
+                                <div className="flex items-center gap-1.5 font-bold">
+                                  <Coins className="w-5 h-5 text-donghai" />
+                                  <span className="text-gray-800">积分支付</span>
+                                </div>
+                              </div>
+                            </div>
+          
+                            <Button 
+                              className="w-full bg-donghai hover:bg-donghai/90 text-white h-12 rounded-xl font-bold"
+                              onClick={() => {
+                                const hasPassword = userInfo?.paymentPassword || userInfo?.payPassword;
+                                if (!hasPassword) {
+                                  setPasswordStep('need_setup');
+                                  return;
+                                }
+                                setPasswordStep('input');
+                                setPasswordInput('');
+                                setPasswordError('');
+                              }}
+                              disabled={payingOrderId === orderToPay.id}
+                            >
+                              {payingOrderId === orderToPay.id ? <Loader2 className="w-6 h-6 animate-spin" /> : '立即付款'}
+                            </Button>
+                            
+                            <div className="flex flex-col items-center gap-2 mt-4 text-[10px] text-gray-400">
+                              <div className="flex items-center gap-1">
+                                <ShieldCheck className="w-3.5 h-3.5" />
+                                <span>支付安全由微信支付提供保障</span>
+                              </div>
+                            </div>
+                          </>
+                        ) : passwordStep === 'need_setup' ? (
+                          <div className="pt-2 text-center pb-4">
+                            <p className="text-gray-500 mb-6 text-sm">您尚未设置支付密码，请先去设置</p>
+                            <Button 
+                              className="w-full bg-donghai hover:bg-donghai/90 text-white rounded-xl h-12 font-bold"
+                              onClick={() => {
+                                if (onShowPayPassword) {
+                                  onShowPayPassword();
+                                }
+                              }}
+                            >
+                              去设置密码
+                            </Button>
+                          </div>
+                        ) : (
+                          <div className="pt-2">
+                            <p className="text-xs text-gray-400 mb-4 text-center">{passwordError || '用于保障您的账户积分与余额安全'}</p>
+          
+                            <div className="flex justify-between gap-2.5 mb-4 max-w-xs mx-auto">
+                              {Array.from({ length: 6 }).map((_, index) => {
+                                const isFilled = index < passwordInput.length;
+                                return (
+                                  <div
+                                    key={index}
+                                    className={`w-10 h-10 border rounded-lg flex items-center justify-center bg-gray-50
+                                      ${passwordError ? 'border-red-500' : 'border-gray-200'}
+                                    `}
+                                  >
+                                    {isFilled && <div className="w-2.5 h-2.5 bg-gray-900 rounded-full" />}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                            
+                            <NumericKeypad 
+                              onInput={(digit) => {
+                                if (passwordInput.length < 6) {
+                                  setPasswordInput(passwordInput + digit);
+                                }
+                              }} 
+                              onDelete={() => {
+                                setPasswordInput(passwordInput.slice(0, -1));
+                              }} 
+                              onClose={() => setPasswordStep('idle')} 
+                            />
+                          </div>
+                        )}
+                      </motion.div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+          
+                {/* Delete Confirmation Dialog */}
+                <AnimatePresence>
+                  {orderIdToDelete && (
+                    <motion.div 
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="fixed inset-0 z-[150] bg-black/60 flex items-center justify-center px-8"
+                    >
+                      <motion.div 
+                        initial={{ scale: 0.9, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        exit={{ scale: 0.9, opacity: 0 }}
+                        className="bg-white w-full max-w-xs rounded-3xl p-6 text-center shadow-2xl"
+                      >
+                        <h3 className="text-base font-bold mb-3 text-gray-800">删除订单</h3>
+                        <p className="text-xs text-gray-500 mb-6 font-medium leading-relaxed">确定要删除该订单吗？<br/>删除后将无法恢复。</p>
+                        <div className="grid grid-cols-2 gap-3">
+                          <Button 
+                            variant="outline" 
+                            onClick={() => setOrderIdToDelete(null)}
+                            className="rounded-xl h-10 text-xs border-gray-200"
+                          >
+                            取消
+                          </Button>
+                          <Button 
+                            onClick={async () => {
+                              if (orderIdToDelete) {
+                                await deleteOrder(orderIdToDelete);
+                                setOrderIdToDelete(null);
+                                setSelectedOrder(null);
+                              }
+                            }}
+                            className="rounded-xl h-10 text-xs bg-red-500 hover:bg-red-600 text-white font-bold"
+                          >
+                            确认删除
+                          </Button>
+                        </div>
+                      </motion.div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+        </>,
+        document.body
+      ) : null}
+    </>
   );
 }

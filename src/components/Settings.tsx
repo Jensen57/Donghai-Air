@@ -156,6 +156,7 @@ function PayPasswordPage({ userInfo, onBack, updateUser }: { userInfo: any, onBa
   const [errorMsg, setErrorMsg] = useState('');
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showSupportModal, setShowSupportModal] = useState(false);
   const [isModifying, setIsModifying] = useState(false);
 
   const hasPassword = !!userInfo?.paymentPassword;
@@ -293,9 +294,7 @@ function PayPasswordPage({ userInfo, onBack, updateUser }: { userInfo: any, onBa
 
                   <div 
                     onClick={() => {
-                      setIsModifying(false);
-                      handleReset();
-                      setViewMode('enter_pass');
+                      setShowSupportModal(true);
                     }}
                     className="flex items-center justify-between py-4 px-2 active:bg-gray-50 cursor-pointer transition-colors"
                   >
@@ -304,8 +303,8 @@ function PayPasswordPage({ userInfo, onBack, updateUser }: { userInfo: any, onBa
                         <RefreshCw className="w-4 h-4 text-blue-500" />
                       </div>
                       <div>
-                        <div className="text-sm font-bold text-gray-800">重置密码</div>
-                        <div className="text-[10px] text-gray-400 mt-0.5">忘记密码或需要直接重置</div>
+                        <div className="text-sm font-bold text-gray-800">忘记密码</div>
+                        <div className="text-[10px] text-gray-400 mt-0.5">忘记密码？联系客服进行查询</div>
                       </div>
                     </div>
                     <ChevronRight className="w-4 h-4 text-gray-300" />
@@ -403,6 +402,46 @@ function PayPasswordPage({ userInfo, onBack, updateUser }: { userInfo: any, onBa
           </div>
         </div>
       )}
+
+      {/* Customer Support Modal */}
+      <AnimatePresence>
+        {showSupportModal && (
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center z-[250] p-6">
+            <motion.div 
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white rounded-3xl p-6 w-full max-w-xs text-center shadow-2xl border border-gray-100"
+            >
+              <div className="w-12 h-12 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-3">
+                <Info className="w-6 h-6 text-blue-500" />
+              </div>
+              <h4 className="text-sm font-bold text-gray-800">找回支付密码</h4>
+              <p className="text-xs text-gray-500 mt-2">
+                请联系客服处理，电话：4009908619
+              </p>
+              <div className="mt-5 flex gap-2">
+                <Button 
+                  variant="outline"
+                  className="flex-1 rounded-full border-gray-200 h-10 text-xs"
+                  onClick={() => setShowSupportModal(false)}
+                >
+                  取消
+                </Button>
+                <Button 
+                  className="flex-1 rounded-full bg-donghai hover:bg-donghai/90 text-white font-bold h-10 text-xs"
+                  onClick={() => {
+                    window.location.href = 'tel:4009908619';
+                    setShowSupportModal(false);
+                  }}
+                >
+                  呼叫客服
+                </Button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* Incorrect Password Error Modal */}
       <AnimatePresence>

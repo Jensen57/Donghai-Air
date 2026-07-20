@@ -15,6 +15,12 @@ export default function PointsCenter({ onBack }: { onBack: () => void }) {
   
   // Filter states
   const [activeType, setActiveType] = useState<string>('all');
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 6;
+
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [activeType]);
 
   const filterTypes = [
     { id: 'all', label: '全部' },
@@ -33,6 +39,11 @@ export default function PointsCenter({ onBack }: { onBack: () => void }) {
       return true;
     });
   }, [userInfo?.pointsRecords, activeType]);
+
+  const totalPages = Math.ceil(filteredRecords.length / ITEMS_PER_PAGE);
+  const paginatedRecords = useMemo(() => {
+    return filteredRecords.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+  }, [filteredRecords, currentPage]);
 
   const getExpiryDate = (createdAtStr: string) => {
     try {
@@ -106,9 +117,9 @@ export default function PointsCenter({ onBack }: { onBack: () => void }) {
 
           {/* Records List */}
           <div className="flex-1 space-y-3">
-            {filteredRecords.length > 0 ? (
+            {paginatedRecords.length > 0 ? (
               <div className="divide-y divide-gray-50">
-                {filteredRecords.map((record) => (
+                {paginatedRecords.map((record) => (
                   <div key={record.id} className="py-3 flex items-center justify-between first:pt-0 last:pb-0 active:bg-gray-50/50 transition-colors">
                     <div className="flex items-center gap-3">
                       <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
@@ -155,6 +166,31 @@ export default function PointsCenter({ onBack }: { onBack: () => void }) {
                     重置筛选
                   </Button>
                 )}
+              </div>
+            )}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-center gap-4 py-4">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={currentPage === 1}
+                  onClick={() => setCurrentPage(p => p - 1)}
+                  className="text-xs"
+                >
+                  上一页
+                </Button>
+                <span className="text-xs text-gray-500">
+                  {currentPage} / {totalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={currentPage === totalPages}
+                  onClick={() => setCurrentPage(p => p + 1)}
+                  className="text-xs"
+                >
+                  下一页
+                </Button>
               </div>
             )}
           </div>

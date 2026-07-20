@@ -25,7 +25,9 @@ export default function Mall({
   onTabChange, 
   onShowCustomerService,
   initialCategory,
-  onClearInitialCategory
+  onClearInitialCategory,
+  initialProductId,
+  onClearInitialProductId
 }: { 
   onCheckout: (items: any[]) => void, 
   onShowCompensation: () => void, 
@@ -37,7 +39,9 @@ export default function Mall({
   onTabChange: (tab: any, id?: string) => void,
   onShowCustomerService: () => void,
   initialCategory?: string,
-  onClearInitialCategory?: () => void
+  onClearInitialCategory?: () => void,
+  initialProductId?: string,
+  onClearInitialProductId?: () => void
 }) {
   const [showSearch, setShowSearch] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -49,7 +53,7 @@ export default function Mall({
   const [searchKeyword, setSearchKeyword] = useState('');
   const [searchExecuted, setSearchExecuted] = useState(false);
   const [lastSearchedKeyword, setLastSearchedKeyword] = useState('');
-  const [searchSortBy, setSearchSortBy] = useState<'default' | 'price-asc' | 'price-desc' | 'sales'>('default');
+  const [searchSortBy, setSearchSortBy] = useState<'price-asc' | 'price-desc'>('price-asc');
   const [searchFilterType, setSearchFilterType] = useState<'all' | 'physical' | 'internal' | 'points'>('all');
   const [searchShowFilters, setSearchShowFilters] = useState(false);
 
@@ -58,7 +62,21 @@ export default function Mall({
     { title: "积分兑换 惊喜不停", desc: "超值好礼 等你来兑", seed: "travel" },
   ];
 
+  
   useEffect(() => {
+    if (initialProductId) {
+      // Find product in all sources
+      const allProducts = [...DETAILED_PRODUCTS, ...INTERNAL_PRODUCTS, ...POINTS_PRODUCTS];
+      const product = allProducts.find(p => p.id === initialProductId);
+      if (product) {
+        setSelectedProduct(product as Product);
+      }
+      if (onClearInitialProductId) {
+        onClearInitialProductId();
+      }
+    }
+  }, [initialProductId, onClearInitialProductId]);
+useEffect(() => {
     if (initialCategory) {
       setActiveCategory(initialCategory);
       if (onClearInitialCategory) {

@@ -40,41 +40,19 @@ function NotificationToast({ onClick }: { onClick?: () => void }) {
     <AnimatePresence>
       {notification && (
         <motion.div
-          initial={{ y: -100, opacity: 0 }}
+          initial={{ y: 100, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          exit={{ y: -100, opacity: 0 }}
-          drag="y"
-          dragConstraints={{ top: 0, bottom: 0 }}
-          onDragEnd={(_, info) => {
-            if (info.offset.y < -20) {
-              hideNotification();
-            }
-          }}
-          className="absolute top-6 left-4 right-4 z-[1000]"
+          exit={{ y: 100, opacity: 0 }}
+          className="absolute bottom-24 left-0 right-0 z-[1000] flex justify-center px-4"
         >
           <div 
             onClick={() => {
               if (onClick) onClick();
               hideNotification();
             }}
-            className="bg-white/95 backdrop-blur-md border border-donghai/10 shadow-2xl rounded-2xl p-4 flex items-center gap-4 cursor-pointer"
+            className="bg-gray-800/90 text-white backdrop-blur-md px-6 py-2 rounded-full text-sm font-medium shadow-lg cursor-pointer"
           >
-            <div className="w-10 h-10 bg-donghai/10 rounded-full flex items-center justify-center flex-shrink-0">
-              <Bell className="w-5 h-5 text-donghai" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <h4 className="text-sm font-bold text-gray-800 truncate">{notification.title}</h4>
-              <p className="text-xs text-gray-500 truncate">{notification.content}</p>
-            </div>
-            <button 
-              onClick={(e) => {
-                e.stopPropagation();
-                hideNotification();
-              }}
-              className="p-1 hover:bg-gray-100 rounded-full transition-colors"
-            >
-              <X className="w-4 h-4 text-gray-400" />
-            </button>
+            {notification.title === '已加入购物车' ? '加入购物车成功' : notification.title}
           </div>
         </motion.div>
       )}
@@ -87,6 +65,7 @@ function AppContent() {
   const [activeTab, setActiveTab] = useState('mall');
   const [prevTab, setPrevTab] = useState<string | null>(null);
   const [checkoutItems, setCheckoutItems] = useState<any[]>([]);
+  const [ordersKey, setOrdersKey] = useState(0);
   const [showCheckout, setShowCheckout] = useState(false);
   const [afterSalesInfo, setAfterSalesInfo] = useState<{ orderId?: string, productId?: string } | null>(null);
   const [showCompensation, setShowCompensation] = useState(false);
@@ -99,6 +78,19 @@ function AppContent() {
   const [loginStep, setLoginStep] = useState<'auth' | 'phone'>('auth');
   const [showCustomerService, setShowCustomerService] = useState(false);
   const [mallCategory, setMallCategory] = useState<string | undefined>(undefined);
+  const [mallProductId, setMallProductId] = useState<string | undefined>(undefined);
+
+  React.useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const pId = params.get('productId');
+    if (pId) {
+      setMallProductId(pId);
+      setActiveTab('mall');
+      
+      const newUrl = window.location.pathname;
+      window.history.replaceState({}, '', newUrl);
+    }
+  }, []);
 
   const triggerLogin = (step: any = 'auth') => {
     const finalStep = (step === 'auth' || step === 'phone') ? step : 'auth';
@@ -179,6 +171,7 @@ function AppContent() {
     setShowPointsCenter(false);
     setShowInternalOrders(false);
     handleTabChange('orders');
+    setOrdersKey(prev => prev + 1);
   };
 
   const handleTabChange = (tab: string, id?: string) => {
@@ -236,6 +229,8 @@ function AppContent() {
             onShowCustomerService={handleOpenCustomerService}
             initialCategory={mallCategory}
             onClearInitialCategory={() => setMallCategory(undefined)}
+            initialProductId={mallProductId}
+            onClearInitialProductId={() => setMallProductId(undefined)}
           />
         );
       case 'cart':
@@ -252,6 +247,7 @@ function AppContent() {
       case 'orders':
         return (
           <Orders 
+            key={ordersKey}
             onApplyAfterSales={handleApplyAfterSales} 
             initialOrderId={targetOrderId} 
             onClearTarget={() => setTargetOrderId(undefined)}
@@ -264,6 +260,13 @@ function AppContent() {
             onShowLogin={triggerLogin}
             onShowCustomerService={handleOpenCustomerService}
             onShowEmployeeAuth={() => setShowEmployeeAuth(true)}
+            onShowPayPassword={() => {
+              if (isLoggedIn) {
+                setSetupPasswordStep('setup');
+              } else {
+                triggerLogin('auth');
+              }
+            }}
           />
         );
       case 'profile':
@@ -301,6 +304,8 @@ function AppContent() {
             onShowCustomerService={handleOpenCustomerService}
             initialCategory={mallCategory}
             onClearInitialCategory={() => setMallCategory(undefined)}
+            initialProductId={mallProductId}
+            onClearInitialProductId={() => setMallProductId(undefined)}
           />
         );
     }
@@ -411,6 +416,7 @@ function AppContent() {
               />
             ) : showInternalOrders ? (
               <Orders 
+                key={ordersKey}
                 onApplyAfterSales={handleApplyAfterSales} 
                 onBack={() => setShowInternalOrders(false)}
                 isInternalOnly={true} 
@@ -419,6 +425,13 @@ function AppContent() {
                 onShowLogin={triggerLogin}
                 onShowCustomerService={handleOpenCustomerService}
                 onShowEmployeeAuth={() => setShowEmployeeAuth(true)}
+                onShowPayPassword={() => {
+                  if (isLoggedIn) {
+                    setSetupPasswordStep('setup');
+                  } else {
+                    triggerLogin('auth');
+                  }
+                }}
               />
             ) : showBuyPoints ? (
               <BuyPoints onBack={() => setShowBuyPoints(false)} />

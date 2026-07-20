@@ -80,8 +80,9 @@ export default function ProductDetail({
   const [quantity, setQuantity] = useState(1);
   const [isFavoriting, setIsFavoriting] = useState(false);
   const [showShare, setShowShare] = useState(false);
+  const [showPoster, setShowPoster] = useState(false);
   const [isAddingToCart, setIsAddingToCart] = useState(false);
-  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [showFavoriteToast, setShowFavoriteToast] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [errorType, setErrorType] = useState<'auth' | 'phone' | 'idVerified' | 'points' | null>(null);
@@ -250,8 +251,8 @@ export default function ProductDetail({
         specs: selectedSpecs,
         quantity: quantity
       });
-      setShowToast(true);
-      setTimeout(() => setShowToast(false), 2000);
+      setToastMessage(`加入购物车成功 (${quantity}件)`);
+      setTimeout(() => setToastMessage(null), 2000);
     } catch (err) {
       setErrorMsg('加入失败，请稍后再试');
     } finally {
@@ -261,7 +262,7 @@ export default function ProductDetail({
 
   const handleShare = () => {
     if (!checkAuthStatus()) return;
-    setShowShare(true);
+    setShowPoster(true);
   };
 
   if (isLoading) {
@@ -498,53 +499,95 @@ export default function ProductDetail({
         </div>
       </div>
 
-      {/* Share Sheet */}
+      
+      {/* Poster Overlay */}
       <AnimatePresence>
-        {showShare && (
-          <div className="absolute inset-0 z-[200] flex items-end" onClick={() => setShowShare(false)}>
-            <div className="absolute inset-0 bg-black/60" />
-            <motion.div 
-              initial={{ y: '100%' }}
-              animate={{ y: 0 }}
-              exit={{ y: '100%' }}
-              onClick={(e) => e.stopPropagation()}
-              className="relative bg-white w-full rounded-t-[32px] p-6 pb-12 shadow-2xl"
-            >
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-lg font-bold">分享到</h3>
-                <X className="w-6 h-6 text-gray-300" onClick={() => setShowShare(false)} />
-              </div>
-              <div className="grid grid-cols-4 gap-4">
-                {[
-                  { icon: 'https://img.icons8.com/color/96/wechat.png', label: '微信好友' },
-                  { icon: 'https://img.icons8.com/color/96/wechat.png', label: '朋友圈' },
-                  { icon: 'https://img.icons8.com/color/96/qq.png', label: 'QQ好友' },
-                  { icon: 'https://img.icons8.com/color/96/link.png', label: '复制链接' },
-                ].map((item, i) => (
-                  <div key={i} className="flex flex-col items-center gap-2" onClick={() => setShowShare(false)}>
-                    <div className="w-12 h-12 rounded-2xl bg-gray-50 flex items-center justify-center p-2">
-                      <img src={item.icon} alt={item.label} className="w-full h-full object-contain" />
+        {showPoster && (
+          <div className="absolute inset-0 z-[210] flex flex-col items-center justify-center p-8" onClick={() => setShowPoster(false)}>
+            <div className="absolute inset-0 bg-black/80" />
+            
+            <div className="relative flex flex-col items-center w-full max-w-sm">
+              <motion.div 
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.9, opacity: 0 }}
+                onClick={(e) => e.stopPropagation()}
+                className="relative w-full bg-white rounded-[24px] overflow-hidden flex flex-col items-center shadow-2xl mb-8"
+              >
+                {/* Product Image */}
+                <div className="w-full aspect-square bg-gray-50 relative">
+                  <img src={product.images?.[0] || product.image} alt={product.name} className="w-full h-full object-cover" />
+                </div>
+
+                {/* Product Info */}
+                <div className="w-full p-6 pt-5 pb-8 flex justify-between gap-4">
+                  <div className="flex-1">
+                    <div className="text-xl font-bold text-donghai mb-1.5 flex items-baseline gap-0.5">
+                      {product.points || product.price}
+                      <span className="text-[12px] ml-1">{product.points ? '积分' : '元'}</span>
                     </div>
-                    <span className="text-[10px] text-gray-500">{item.label}</span>
+                    <h3 className="text-[14px] font-bold text-gray-800 line-clamp-2 leading-relaxed">
+                      {product.name}
+                    </h3>
                   </div>
-                ))}
+                  
+                  {/* QR Code */}
+                  <div className="flex flex-col items-center shrink-0">
+                    <div className="w-20 h-20 p-1 bg-white border border-gray-100 rounded-lg shadow-sm mb-2">
+                      <img src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(window.location.origin + '?productId=' + product.id)}`} alt="QR" className="w-full h-full object-contain" />
+                    </div>
+                    <span className="text-[9px] text-gray-400">长按识别二维码</span>
+                  </div>
+                </div>
+              </motion.div>
+              
+              <motion.div
+                initial={{ y: 20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                exit={{ y: 20, opacity: 0 }}
+                className="flex items-center gap-4"
+              >
+                <Button 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowPoster(false);
+                  }} 
+                  variant="outline"
+                  className="rounded-full px-8 h-11 font-bold text-sm bg-white/10 text-white border-white/20 hover:bg-white/20 backdrop-blur-md"
+                >
+                  取消
+                </Button>
+                <Button 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setToastMessage('保存成功');
+                    setTimeout(() => setToastMessage(null), 2000);
+                  }} 
+                  className="bg-donghai text-white rounded-full px-8 h-11 font-bold text-sm shadow-lg shadow-donghai/30"
+                >
+                  保存图片
+                </Button>
+              </motion.div>
+              
+              <div className="absolute -top-12 right-0 w-8 h-8 rounded-full bg-white/20 flex items-center justify-center backdrop-blur-md cursor-pointer" onClick={() => setShowPoster(false)}>
+                <X className="w-5 h-5 text-white" />
               </div>
-            </motion.div>
+            </div>
           </div>
         )}
       </AnimatePresence>
 
       {/* Success Toast */}
       <AnimatePresence>
-        {showToast && (
+        {toastMessage && (
           <motion.div 
             initial={{ opacity: 0, y: 20, x: '-50%' }}
             animate={{ opacity: 1, y: 0, x: '-50%' }}
             exit={{ opacity: 0, y: 20, x: '-50%' }}
-            className="absolute bottom-24 left-1/2 z-[200] bg-black/80 backdrop-blur-md text-white px-6 py-3 rounded-full flex items-center gap-2"
+            className="absolute bottom-24 left-1/2 z-[250] bg-black/80 backdrop-blur-md text-white px-6 py-3 rounded-full flex items-center gap-2"
           >
             <Check className="w-4 h-4 text-green-400" />
-            <span className="text-xs font-bold">加入购物车成功 ({quantity}件)</span>
+            <span className="text-xs font-bold">{toastMessage}</span>
           </motion.div>
         )}
       </AnimatePresence>

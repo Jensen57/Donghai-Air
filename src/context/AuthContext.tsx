@@ -512,7 +512,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           return updated;
         });
 
-        showNotification('下单成功', `订单号: ${orderId}`);
         resolve(orderId);
       }, 500);
     });
