@@ -6,13 +6,11 @@ import { ShoppingCart, Search, Star, ChevronRight, ShoppingBag, Bell, ShieldChec
 import { motion, AnimatePresence } from 'motion/react';
 import SearchPage from './SearchPage';
 import ProductDetail, { Product } from './ProductDetail';
-import { DETAILED_PRODUCTS, INTERNAL_PRODUCTS } from '../constants';
+import { DETAILED_PRODUCTS, INTERNAL_PRODUCTS, POINTS_PRODUCTS } from '../constants';
 import Cart from './Cart';
 import Checkout from './Checkout';
 import { useAuth } from '../context/AuthContext';
 
-
-const CATEGORIES = ["全部", "咖啡饮品", "精选茗茶", "航空周边", "员工专区"];
 
 export default function Mall({ 
   onCheckout, 
@@ -78,7 +76,11 @@ export default function Mall({
   }, [initialProductId, onClearInitialProductId]);
 useEffect(() => {
     if (initialCategory) {
-      setActiveCategory(initialCategory);
+      let target = initialCategory;
+      if (initialCategory === "咖啡饮品") target = "咖啡";
+      else if (initialCategory === "精选茗茶") target = "茶";
+      else if (initialCategory === "航空周边") target = "机模";
+      setActiveCategory(target);
       if (onClearInitialCategory) {
         onClearInitialCategory();
       }
@@ -235,13 +237,22 @@ useEffect(() => {
     if (activeCategory === "员工专区") {
       return INTERNAL_PRODUCTS;
     }
-    
-    let list = DETAILED_PRODUCTS;
-    if (activeCategory !== "全部") {
-      list = list.filter(p => p.category === activeCategory);
+    if (activeCategory === "咖啡") {
+      return DETAILED_PRODUCTS.filter(p => p.category === "咖啡饮品");
     }
-    return list;
+    if (activeCategory === "茶") {
+      return DETAILED_PRODUCTS.filter(p => p.category === "精选茗茶");
+    }
+    if (activeCategory === "机模") {
+      return DETAILED_PRODUCTS.filter(p => p.category === "航空周边");
+    }
+    return DETAILED_PRODUCTS;
   })();
+
+  const showEmployee = userInfo?.isEmployee && userInfo?.employeeAuth?.status === 'approved';
+  const categories = showEmployee 
+    ? ["全部", "咖啡", "茶", "机模", "员工专区"] 
+    : ["全部", "咖啡", "茶", "机模"];
 
   return (
     <div className="flex flex-col min-h-full bg-gray-50">
@@ -311,12 +322,12 @@ useEffect(() => {
 
         {/* Categories Tab Bar - Sticky below header */}
         <div className="sticky top-[128px] z-40 bg-white shadow-[0_4px_10px_rgba(0,0,0,0.02)] border-b border-gray-100">
-          <div className="flex items-center gap-6 px-4 pb-2 pt-2 overflow-x-auto no-scrollbar">
-            {CATEGORIES.map((cat) => (
+          <div className="flex items-center justify-around w-full px-4 pb-2 pt-2 overflow-x-auto no-scrollbar">
+            {categories.map((cat) => (
               <span 
                 key={cat} 
                 onClick={() => handleCategoryClick(cat)}
-                className={`text-sm whitespace-nowrap transition-all ${activeCategory === cat ? 'text-donghai font-extrabold border-b-[3px] border-donghai pb-2' : 'text-gray-500 pb-2 border-b-[3px] border-transparent'}`}
+                className={`text-sm text-center whitespace-nowrap transition-all cursor-pointer ${activeCategory === cat ? 'text-donghai font-extrabold border-b-[3px] border-donghai pb-2' : 'text-gray-500 pb-2 border-b-[3px] border-transparent'}`}
               >
                 {cat}
               </span>

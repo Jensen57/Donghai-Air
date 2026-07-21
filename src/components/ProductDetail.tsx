@@ -133,6 +133,8 @@ export default function ProductDetail({
   }, [product]);
 
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [insufficientPointsConfig, setInsufficientPointsConfig] = useState<{needed: number, current: number} | null>(null);
+  const [showInsufficientPointsConfirm, setShowInsufficientPointsConfirm] = useState(false);
 
   const checkAuthStatus = () => {
     if (!isLoggedIn) {
@@ -167,8 +169,8 @@ export default function ProductDetail({
       const pointsPerItem = product.points || product.price || 0;
       const totalPointsNeeded = pointsPerItem * quantity;
       if (userInfo.points < totalPointsNeeded) {
-        setErrorType('points');
-        setErrorMsg(`您的积分余额不足，兑换该商品需要 ${totalPointsNeeded} 积分，当前仅有 ${userInfo.points} 积分。`);
+        setInsufficientPointsConfig({ needed: totalPointsNeeded, current: userInfo.points });
+        setShowInsufficientPointsConfirm(true);
         return;
       }
     }
@@ -516,7 +518,7 @@ export default function ProductDetail({
               >
                 {/* Product Image */}
                 <div className="w-full aspect-square bg-gray-50 relative">
-                  <img src={product.images?.[0] || product.image} alt={product.name} className="w-full h-full object-cover" />
+                  <img src={product.images?.[0] || ''} alt={product.name} className="w-full h-full object-cover" />
                 </div>
 
                 {/* Product Info */}
@@ -593,6 +595,53 @@ export default function ProductDetail({
       </AnimatePresence>
 
 
+
+      {/* Insufficient Points Confirmation Modal */}
+      <AnimatePresence>
+        {showInsufficientPointsConfirm && insufficientPointsConfig && (
+          <div className="absolute inset-0 z-[200] flex items-center justify-center px-6">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowInsufficientPointsConfirm(false)}
+              className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+            />
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="relative bg-white rounded-[32px] p-6 w-full max-w-xs text-center shadow-2xl"
+            >
+              <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                <AlertCircle className="w-8 h-8 text-blue-500" />
+              </div>
+              <h3 className="text-lg font-bold text-gray-800 mb-2">积分不足</h3>
+              <p className="text-xs text-gray-500 mb-6 leading-relaxed">
+                兑换该商品需要 {insufficientPointsConfig.needed} 积分，当前仅有 {insufficientPointsConfig.current} 积分。是否前往购买积分？
+              </p>
+              <div className="flex gap-3">
+                <Button 
+                  variant="outline"
+                  className="flex-1 rounded-full border-gray-200 h-11 font-bold"
+                  onClick={() => setShowInsufficientPointsConfirm(false)}
+                >
+                  取消
+                </Button>
+                <Button 
+                  className="flex-1 bg-donghai text-white rounded-full h-11 font-bold"
+                  onClick={() => {
+                    setShowInsufficientPointsConfirm(false);
+                    setShowBuyPoints(true);
+                  }}
+                >
+                  确定
+                </Button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* Error Message Overlay */}
       <AnimatePresence>

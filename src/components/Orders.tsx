@@ -1,5 +1,5 @@
 import { NumericKeypad } from './NumericKeypad';
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -43,6 +43,19 @@ const STATUS_MAP: Record<OrderStatus, { label: string, color: string }> = {
   cancelled: { label: '已取消', color: 'text-gray-300' }
 };
 
+const EXPIRATION_TIME = 120 * 1000; // 2 minutes
+
+const parseCreatedAt = (createdAtStr: string): number => {
+  const timestamp = Date.parse(createdAtStr);
+  if (!isNaN(timestamp)) return timestamp;
+  try {
+    const normalized = createdAtStr.replace(/\//g, '-');
+    const t = Date.parse(normalized);
+    if (!isNaN(t)) return t;
+  } catch (e) {}
+  return Date.now();
+};
+
 interface OrderListCardProps {
   key?: React.Key;
   order: Order;
@@ -67,6 +80,33 @@ const OrderListCard = ({
   const items = isExpanded ? order.items : order.items.slice(0, 1);
   const hasMultiple = order.items.length > 1;
 
+  const [timeLeft, setTimeLeft] = useState<string>('');
+
+  useEffect(() => {
+    if (order.status !== 'pendingPayment') {
+      setTimeLeft('');
+      return;
+    }
+
+    const updateTimer = () => {
+      const elapsed = Date.now() - parseCreatedAt(order.createdAt);
+      const remainingSecs = Math.max(0, Math.floor((EXPIRATION_TIME - elapsed) / 1000));
+      
+      if (remainingSecs <= 0) {
+        setTimeLeft('');
+        onUpdateStatus(order.id, 'cancelled');
+      } else {
+        const mins = Math.floor(remainingSecs / 60);
+        const secs = remainingSecs % 60;
+        setTimeLeft(`${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`);
+      }
+    };
+
+    updateTimer();
+    const interval = setInterval(updateTimer, 1000);
+    return () => clearInterval(interval);
+  }, [order.id, order.status, order.createdAt, onUpdateStatus]);
+
   return (
     <Card 
       onClick={() => onSelect(order)}
@@ -79,9 +119,16 @@ const OrderListCard = ({
             <span className="ml-1 px-1 bg-blue-50 text-blue-500 rounded-sm">内购</span>
           )}
         </div>
-        <span className={`text-[11px] font-bold ${STATUS_MAP[order.status].color}`}>
-          {STATUS_MAP[order.status].label}
-        </span>
+        <div className="flex items-center gap-1.5">
+          {timeLeft && (
+            <span className="text-[10px] text-orange-500 font-bold bg-orange-50 px-1.5 py-0.5 rounded-sm animate-pulse">
+              倒计时 {timeLeft}
+            </span>
+          )}
+          <span className={`text-[11px] font-bold ${STATUS_MAP[order.status].color}`}>
+            {STATUS_MAP[order.status].label}
+          </span>
+        </div>
       </div>
       
       <motion.div layout className="space-y-3">
@@ -187,7 +234,7 @@ const OrderListCard = ({
               {(order.status === 'afterSalesCompleted' || order.status === 'afterSalesRejected') ? '查看详情' : '再来一单'}
             </Button>
           )}
-          {(order.status === 'cancelled' || order.status === 'completed') && (
+          {(order.status === 'cancelled' || order.status === 'completed' || order.status === 'pendingPayment') && (
             <Button 
               variant="outline" 
               size="sm" 
@@ -295,6 +342,33 @@ const OrderDetail = ({ order, onBack, onShowLogistics, onApplyAfterSales, onPay,
   const [copiedTracking, setCopiedTracking] = useState(false);
   const statusInfo = STATUS_MAP[order.status];
 
+  const [timeLeft, setTimeLeft] = useState<string>('');
+
+  useEffect(() => {
+    if (order.status !== 'pendingPayment') {
+      setTimeLeft('');
+      return;
+    }
+
+    const updateTimer = () => {
+      const elapsed = Date.now() - parseCreatedAt(order.createdAt);
+      const remainingSecs = Math.max(0, Math.floor((EXPIRATION_TIME - elapsed) / 1000));
+      
+      if (remainingSecs <= 0) {
+        setTimeLeft('');
+        updateOrderStatus(order.id, 'cancelled');
+      } else {
+        const mins = Math.floor(remainingSecs / 60);
+        const secs = remainingSecs % 60;
+        setTimeLeft(`剩 ${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')} 自动取消`);
+      }
+    };
+
+    updateTimer();
+    const interval = setInterval(updateTimer, 1000);
+    return () => clearInterval(interval);
+  }, [order.id, order.status, order.createdAt, updateOrderStatus]);
+
   const handleCopyTracking = (num: string) => {
     navigator.clipboard.writeText(num);
     setCopiedTracking(true);
@@ -320,11 +394,16 @@ const OrderDetail = ({ order, onBack, onShowLogistics, onApplyAfterSales, onPay,
             <CheckCircle2 className={`w-5 h-5 ${statusInfo.color}`} />
             <h2 className={`text-lg font-bold ${statusInfo.color}`}>{statusInfo.label}</h2>
           </div>
-          <p className="text-[10px] text-gray-400">
-            {order.status === 'completed' && '订单已完成，感谢您的支持'}
-            {order.status === 'pendingPayment' && '请尽快完成支付'}
-            {order.status === 'pendingShipment' && '商品准备中'}
-          </p>
+          <div className="text-right">
+            {order.status === 'completed' && <p className="text-[10px] text-gray-400">订单已完成，感谢您的支持</p>}
+            {order.status === 'pendingPayment' && (
+              <p className="text-[10px] text-orange-500 font-bold animate-pulse">
+                {timeLeft || '请尽快完成支付'}
+              </p>
+            )}
+            {order.status === 'pendingShipment' && <p className="text-[10px] text-gray-400">商品准备中</p>}
+            {order.status === 'cancelled' && <p className="text-[10px] text-gray-400">订单超时未支付已关闭</p>}
+          </div>
         </div>
 
         {/* Store & Items Card */}
@@ -442,7 +521,13 @@ const OrderDetail = ({ order, onBack, onShowLogistics, onApplyAfterSales, onPay,
       <div className="bg-white border-t px-4 py-3 pb-8 flex items-center justify-end gap-3 shrink-0 shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
         {order.status === 'pendingPayment' && (
           <>
-            <Button variant="outline" className="rounded-full text-xs h-9 px-6 border-gray-200">取消订单</Button>
+            <Button 
+              variant="outline" 
+              className="rounded-full text-xs h-9 px-6 border-gray-200 text-gray-500 hover:bg-gray-50"
+              onClick={() => updateOrderStatus(order.id, 'cancelled')}
+            >
+              取消订单
+            </Button>
             <Button 
               disabled={isPaying}
               className="rounded-full text-xs h-9 px-8 bg-donghai text-white min-w-[100px]"
@@ -491,7 +576,7 @@ const OrderDetail = ({ order, onBack, onShowLogistics, onApplyAfterSales, onPay,
             </Button>
           </>
         )}
-        {(order.status === 'cancelled' || order.status === 'completed') && (
+        {(order.status === 'cancelled' || order.status === 'completed' || order.status === 'pendingPayment') && (
           <Button 
             variant="outline" 
             className="rounded-full text-xs h-9 px-6 border-red-200 text-red-500 hover:text-red-600 hover:bg-red-50 font-bold"
@@ -521,6 +606,7 @@ export default function Orders({
   onShowEmployeeAuth,
   onShowPayPassword
 }: { 
+  key?: any,
   onApplyAfterSales: (orderId: string, productId: string) => void, 
   onBack?: () => void, 
   isInternalOnly?: boolean, 
@@ -720,7 +806,8 @@ export default function Orders({
     { id: 'pendingPayment', label: '待付款' },
     { id: 'pendingShipment', label: '待发货' },
     { id: 'pendingReceipt', label: '待收货' },
-    { id: 'completed', label: '已完成' }
+    { id: 'completed', label: '已完成' },
+    { id: 'cancelled', label: '已取消' }
   ];
 
   return (

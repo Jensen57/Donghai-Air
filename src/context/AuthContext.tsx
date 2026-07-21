@@ -249,6 +249,17 @@ const DEFAULT_USER_DATA: Partial<UserInfo> = {
           { time: '2026-04-08 14:00:00', location: '深圳市', status: '包裹正在等待揽收' }
         ]
       }
+    },
+    {
+      id: 'DH20260407002',
+      items: [
+        { productId: '2', name: '东海航空 创意礼品马克杯', image: 'https://picsum.photos/seed/cup/800/800', price: 49, specs: { '颜色': '经典蓝' }, quantity: 1 }
+      ],
+      totalAmount: 49,
+      status: 'cancelled',
+      address: { id: '1', receiver: '张三', phone: '13800138000', province: '广东省', city: '深圳市', district: '宝安区', detail: '航站四路东海航空基地', isDefault: true },
+      paymentMethod: '微信支付',
+      createdAt: '2026-04-07 15:20:00'
     }
   ],
   afterSales: [],

@@ -24,18 +24,22 @@ export default function PointsCenter({ onBack }: { onBack: () => void }) {
 
   const filterTypes = [
     { id: 'all', label: '全部' },
-    { id: 'purchase', label: '购买' },
-    { id: 'compensation', label: '赔付' },
-    { id: 'refund', label: '退回' },
-    { id: 'consumption', label: '兑换' },
+    { id: 'income', label: '收入' },
+    { id: 'expense', label: '支出' },
   ];
 
   const filteredRecords = useMemo(() => {
     if (!userInfo?.pointsRecords) return [];
     
     return userInfo.pointsRecords.filter(record => {
-      // Type filter
-      if (activeType !== 'all' && record.type !== activeType) return false;
+      if (activeType === 'income') {
+        // 'purchase', 'compensation', 'refund', 'bonus' or amount > 0
+        return record.amount > 0 || ['purchase', 'compensation', 'refund', 'bonus'].includes(record.type);
+      }
+      if (activeType === 'expense') {
+        // 'consumption' or amount < 0
+        return record.amount < 0 || record.type === 'consumption';
+      }
       return true;
     });
   }, [userInfo?.pointsRecords, activeType]);

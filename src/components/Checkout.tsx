@@ -55,6 +55,8 @@ export default function Checkout({
   const [showAddressManagement, setShowAddressManagement] = useState(false);
   const [showEmployeeAuthNeeded, setShowEmployeeAuthNeeded] = useState(false);
   const [showSetupPasswordDialog, setShowSetupPasswordDialog] = useState(false);
+  const [showInsufficientPointsConfirm, setShowInsufficientPointsConfirm] = useState(false);
+  const [insufficientPointsConfig, setInsufficientPointsConfig] = useState<{needed: number, current: number} | null>(null);
   const { updateUser } = useAuth();
 
   const [passwordStep, setPasswordStep] = useState<'idle' | 'input' | 'need_setup'>('idle');
@@ -118,9 +120,8 @@ export default function Checkout({
     }
 
     if (totalPoints > 0 && userInfo && userInfo.points < totalPoints) {
-      alert(`您的积分不足（完成此订单需要 ${totalPoints} 积分，当前仅有 ${userInfo.points} 积分），点击确定去购买积分`);
-      setShowBuyPoints(true);
-      onBack();
+      setInsufficientPointsConfig({ needed: totalPoints, current: userInfo.points });
+      setShowInsufficientPointsConfirm(true);
       return;
     }
 
@@ -598,6 +599,53 @@ export default function Checkout({
                   }}
                 >
                   去设置
+                </Button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Insufficient Points Confirmation Modal */}
+      <AnimatePresence>
+        {showInsufficientPointsConfirm && insufficientPointsConfig && (
+          <div className="fixed inset-0 z-[250] flex items-center justify-center px-6">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowInsufficientPointsConfirm(false)}
+              className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+            />
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="relative bg-white rounded-[32px] p-6 w-full max-w-xs text-center shadow-2xl"
+            >
+              <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                <AlertCircle className="w-8 h-8 text-blue-500" />
+              </div>
+              <h3 className="text-lg font-bold text-gray-800 mb-2">积分不足</h3>
+              <p className="text-xs text-gray-500 mb-6 leading-relaxed">
+                当前所需积分 {insufficientPointsConfig.needed}，账户内可用积分 {insufficientPointsConfig.current}，积分不足是否去充值？
+              </p>
+              <div className="flex gap-3">
+                <Button 
+                  variant="outline"
+                  className="flex-1 rounded-full border-gray-200 h-11 font-bold text-gray-600"
+                  onClick={() => setShowInsufficientPointsConfirm(false)}
+                >
+                  取消
+                </Button>
+                <Button 
+                  className="flex-1 bg-donghai text-white rounded-full h-11 font-bold"
+                  onClick={() => {
+                    setShowInsufficientPointsConfirm(false);
+                    setShowBuyPoints(true);
+                  }}
+                >
+                  去充值
                 </Button>
               </div>
             </motion.div>

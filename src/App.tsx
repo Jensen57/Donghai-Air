@@ -108,7 +108,15 @@ function AppContent() {
   const [initialSettingSubPage, setInitialSettingSubPage] = useState<string | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [pendingCheckoutPay, setPendingCheckoutPay] = useState<boolean>(false);
+  const [pendingCheckoutPoints, setPendingCheckoutPoints] = useState<boolean>(false);
   const [autoOpenPasswordInput, setAutoOpenPasswordInput] = useState<boolean>(false);
+
+  React.useEffect(() => {
+    if (showBuyPoints && showCheckout) {
+      setPendingCheckoutPoints(true);
+      setShowCheckout(false);
+    }
+  }, [showBuyPoints, showCheckout]);
 
   React.useEffect(() => {
     if (initialSettingSubPage) {
@@ -261,8 +269,9 @@ function AppContent() {
             onShowCustomerService={handleOpenCustomerService}
             onShowEmployeeAuth={() => setShowEmployeeAuth(true)}
             onShowPayPassword={() => {
-              if (isLoggedIn) {
-                setSetupPasswordStep('setup');
+              if (userInfo) {
+                setInitialSettingSubPage('payPassword');
+                setShowSettings(true);
               } else {
                 triggerLogin('auth');
               }
@@ -426,15 +435,22 @@ function AppContent() {
                 onShowCustomerService={handleOpenCustomerService}
                 onShowEmployeeAuth={() => setShowEmployeeAuth(true)}
                 onShowPayPassword={() => {
-                  if (isLoggedIn) {
-                    setSetupPasswordStep('setup');
+                  if (userInfo) {
+                    setInitialSettingSubPage('payPassword');
+                    setShowSettings(true);
                   } else {
                     triggerLogin('auth');
                   }
                 }}
               />
             ) : showBuyPoints ? (
-              <BuyPoints onBack={() => setShowBuyPoints(false)} />
+              <BuyPoints onBack={() => {
+                setShowBuyPoints(false);
+                if (pendingCheckoutPoints) {
+                  setPendingCheckoutPoints(false);
+                  setShowCheckout(true);
+                }
+              }} />
             ) : showPointsMall ? (
               <PointsMall 
                 onBack={() => setShowPointsMall(false)} 
