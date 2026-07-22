@@ -65,6 +65,8 @@ interface OrderListCardProps {
   onDelete: (id: string) => void;
   STATUS_MAP: Record<OrderStatus, { label: string; color: string }>;
   onCheckout?: (items: any[]) => void;
+  onApplyAfterSales?: (orderId: string, productId: string) => void;
+  onShowAfterSales?: (orderId: string, productId: string) => void;
 }
 
 const OrderListCard = ({ 
@@ -74,8 +76,12 @@ const OrderListCard = ({
   onUpdateStatus, 
   onDelete,
   STATUS_MAP,
-  onCheckout
+  onCheckout,
+  onApplyAfterSales,
+  onShowAfterSales
 }: OrderListCardProps) => {
+  const { userInfo } = useAuth();
+  const hasAppliedAfterSales = userInfo?.afterSales?.some(r => r.orderId === order.id) || false;
   const [isExpanded, setIsExpanded] = useState(false);
   const items = isExpanded ? order.items : order.items.slice(0, 1);
   const hasMultiple = order.items.length > 1;
@@ -182,11 +188,11 @@ const OrderListCard = ({
             {order.totalPoints || order.totalAmount || 0} 积分
           </span>
         </div>
-        <div className="flex gap-1.5">
+        <div className="flex gap-1">
           {order.status === 'pendingPayment' && (
             <Button 
               size="sm" 
-              className="rounded-full text-[11px] h-6 px-4 bg-donghai text-white py-0 font-bold"
+              className="rounded-full text-[10px] h-[22px] px-2.5 bg-donghai text-white py-0 font-medium"
               onClick={(e) => {
                 e.stopPropagation();
                 onPay(order);
@@ -198,7 +204,7 @@ const OrderListCard = ({
           {(order.status === 'pendingShipment' || order.status === 'pendingReceipt') && (
             <Button 
               size="sm" 
-              className="rounded-full text-[11px] h-6 px-4 bg-donghai text-white py-0 font-bold"
+              className="rounded-full text-[10px] h-[22px] px-2.5 bg-donghai text-white py-0 font-medium"
               onClick={(e) => {
                 e.stopPropagation();
                 if (order.status === 'pendingShipment') onUpdateStatus(order.id, 'pendingReceipt');
@@ -208,37 +214,67 @@ const OrderListCard = ({
               {order.status === 'pendingShipment' ? '发货' : '收货'}
             </Button>
           )}
-          {(order.status === 'completed' || order.status === 'afterSalesCompleted' || order.status === 'afterSalesRejected') && (
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="rounded-full text-[11px] h-6 px-4 border-donghai text-donghai py-0 font-bold" 
-              onClick={(e) => {
-                e.stopPropagation();
-                if (order.status === 'completed' && onCheckout) {
-                  onCheckout(order.items.map(item => ({
-                    productId: item.productId,
-                    name: item.name,
-                    image: item.image,
-                    price: item.price || 0,
-                    points: item.points || 0,
-                    isPointsOnly: item.isPointsOnly,
-                    specs: item.specs || {},
-                    quantity: item.quantity || 1
-                  })));
-                } else {
-                  onSelect(order);
-                }
-              }}
-            >
-              {(order.status === 'afterSalesCompleted' || order.status === 'afterSalesRejected') ? '查看详情' : '再来一单'}
-            </Button>
+          {(order.status === 'completed' || order.status === 'afterSales' || order.status === 'afterSalesCompleted' || order.status === 'afterSalesRejected') && (
+            <div className="flex items-center gap-1">
+              {order.status === 'completed' && !hasAppliedAfterSales && (
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="rounded-full text-[10px] h-[22px] px-2.5 border-orange-500 text-orange-500 hover:bg-orange-50 py-0 font-medium"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (onApplyAfterSales && order.items.length > 0) {
+                      onApplyAfterSales(order.id, order.items[0].productId);
+                    }
+                  }}
+                >
+                  售后
+                </Button>
+              )}
+              {(order.status === 'afterSales' || order.status === 'afterSalesCompleted' || order.status === 'afterSalesRejected' || (order.status === 'completed' && hasAppliedAfterSales)) && (
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="rounded-full text-[10px] h-[22px] px-2.5 border-orange-500 text-orange-500 hover:bg-orange-50 py-0 font-medium"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (onShowAfterSales && order.items.length > 0) {
+                      onShowAfterSales(order.id, order.items[0].productId);
+                    }
+                  }}
+                >
+                  查看售后详情
+                </Button>
+              )}
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="rounded-full text-[10px] h-[22px] px-2.5 border-donghai text-donghai py-0 font-medium" 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (onCheckout) {
+                    onCheckout(order.items.map(item => ({
+                      productId: item.productId,
+                      name: item.name,
+                      image: item.image,
+                      price: item.price || 0,
+                      points: item.points || 0,
+                      isPointsOnly: item.isPointsOnly,
+                      specs: item.specs || {},
+                      quantity: item.quantity || 1
+                    })));
+                  }
+                }}
+              >
+                再来一单
+              </Button>
+            </div>
           )}
-          {(order.status === 'cancelled' || order.status === 'completed' || order.status === 'pendingPayment') && (
+          {(order.status === 'cancelled' || order.status === 'completed' || order.status === 'pendingPayment' || order.status === 'afterSalesCompleted' || order.status === 'afterSalesRejected') && (
             <Button 
               variant="outline" 
               size="sm" 
-              className="rounded-full text-[11px] h-6 px-3 border-red-200 text-red-500 hover:text-red-600 hover:bg-red-50 py-0 font-bold"
+              className="rounded-full text-[10px] h-[22px] px-2.5 border-red-200 text-red-500 hover:text-red-600 hover:bg-red-50 py-0 font-medium"
               onClick={(e) => {
                 e.stopPropagation();
                 onDelete(order.id);
@@ -337,10 +373,11 @@ const LogisticsDetail = ({ order, onBack }: { order: Order, onBack: () => void }
 // Order Detail View
 import { createPortal } from 'react-dom';
 
-const OrderDetail = ({ order, onBack, onShowLogistics, onApplyAfterSales, onPay, isPaying, onDelete, onCheckout, onProductClick }: { order: Order, onBack: () => void, onShowLogistics: () => void, onApplyAfterSales: (productId: string) => void, onPay: (order: Order) => void, isPaying: boolean, onDelete: (orderId: string) => void, onCheckout?: (items: any[]) => void, onProductClick?: (item: any) => void }) => {
+const OrderDetail = ({ order, onBack, onShowLogistics, onApplyAfterSales, onShowAfterSales, onPay, isPaying, onDelete, onCheckout, onProductClick }: { order: Order, onBack: () => void, onShowLogistics: () => void, onApplyAfterSales: (productId: string) => void, onShowAfterSales?: (orderId: string, productId: string) => void, onPay: (order: Order) => void, isPaying: boolean, onDelete: (orderId: string) => void, onCheckout?: (items: any[]) => void, onProductClick?: (item: any) => void }) => {
   const { updateOrderStatus, shipOrder, userInfo } = useAuth();
   const [copiedTracking, setCopiedTracking] = useState(false);
   const statusInfo = STATUS_MAP[order.status];
+  const hasAppliedAfterSales = userInfo?.afterSales?.some(r => r.orderId === order.id) || false;
 
   const [timeLeft, setTimeLeft] = useState<string>('');
 
@@ -554,6 +591,19 @@ const OrderDetail = ({ order, onBack, onShowLogistics, onApplyAfterSales, onPay,
         )}
         {order.status === 'completed' && (
           <>
+            {!hasAppliedAfterSales && (
+              <Button 
+                variant="outline" 
+                className="rounded-full text-xs h-9 px-6 border-orange-500 text-orange-500 hover:bg-orange-50 font-bold"
+                onClick={() => {
+                  if (onApplyAfterSales && order.items.length > 0) {
+                    onApplyAfterSales(order.items[0].productId);
+                  }
+                }}
+              >
+                售后
+              </Button>
+            )}
             <Button 
               variant="outline" 
               className="rounded-full text-xs h-9 px-6 border-donghai text-donghai"
@@ -576,7 +626,7 @@ const OrderDetail = ({ order, onBack, onShowLogistics, onApplyAfterSales, onPay,
             </Button>
           </>
         )}
-        {(order.status === 'cancelled' || order.status === 'completed' || order.status === 'pendingPayment') && (
+        {(order.status === 'cancelled' || order.status === 'completed' || order.status === 'pendingPayment' || order.status === 'afterSalesCompleted' || order.status === 'afterSalesRejected') && (
           <Button 
             variant="outline" 
             className="rounded-full text-xs h-9 px-6 border-red-200 text-red-500 hover:text-red-600 hover:bg-red-50 font-bold"
@@ -585,8 +635,18 @@ const OrderDetail = ({ order, onBack, onShowLogistics, onApplyAfterSales, onPay,
             删除订单
           </Button>
         )}
-        {order.status === 'afterSales' && (
-          <Button variant="outline" className="rounded-full text-xs h-9 px-6 border-gray-200 text-gray-500">查看售后详情</Button>
+        {(order.status === 'afterSales' || order.status === 'afterSalesCompleted' || order.status === 'afterSalesRejected' || (order.status === 'completed' && hasAppliedAfterSales)) && (
+          <Button 
+            variant="outline" 
+            className="rounded-full text-xs h-9 px-6 border-orange-500 text-orange-500 hover:bg-orange-50 font-bold"
+            onClick={() => {
+              if (onShowAfterSales && order.items.length > 0) {
+                onShowAfterSales(order.id, order.items[0].productId);
+              }
+            }}
+          >
+            查看售后详情
+          </Button>
         )}
       </div>
     </div>
@@ -595,6 +655,7 @@ const OrderDetail = ({ order, onBack, onShowLogistics, onApplyAfterSales, onPay,
 
 export default function Orders({ 
   onApplyAfterSales, 
+  onShowAfterSales,
   onBack, 
   isInternalOnly = false, 
   initialOrderId, 
@@ -608,6 +669,7 @@ export default function Orders({
 }: { 
   key?: any,
   onApplyAfterSales: (orderId: string, productId: string) => void, 
+  onShowAfterSales?: (orderId: string, productId: string) => void,
   onBack?: () => void, 
   isInternalOnly?: boolean, 
   initialOrderId?: string, 
@@ -787,6 +849,7 @@ export default function Orders({
           onBack={handleCloseDetail} 
           onShowLogistics={() => setShowLogistics(true)}
           onApplyAfterSales={(productId) => onApplyAfterSales(currentSelectedOrder.id, productId)}
+          onShowAfterSales={onShowAfterSales}
           onPay={handlePayOrder}
           isPaying={payingOrderId === currentSelectedOrder.id}
           onDelete={(id) => setOrderIdToDelete(id)}
@@ -846,6 +909,8 @@ export default function Orders({
                   onDelete={(id) => setOrderIdToDelete(id)}
                   STATUS_MAP={STATUS_MAP}
                   onCheckout={onCheckout}
+                  onApplyAfterSales={onApplyAfterSales}
+                  onShowAfterSales={onShowAfterSales}
                 />
               ))}
 

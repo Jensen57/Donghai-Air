@@ -636,6 +636,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
 
         const orders = prev.orders.filter(o => o.id !== orderId);
+        const afterSales = prev.afterSales ? prev.afterSales.filter(r => r.orderId !== orderId) : [];
 
         const counts = { ...prev.orderCounts };
         const status = orderToDelete.status;
@@ -646,6 +647,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const updated = {
           ...prev,
           orders,
+          afterSales,
           orderCounts: counts
         };
 
@@ -724,13 +726,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     
     // Also track if order status should be updated
     let targetOrderToUpdate: string | null = null;
-    let targetOrderStatus: OrderStatus = 'afterSalesCompleted';
+    let targetOrderStatus: OrderStatus = 'completed';
     
     if (status === 'completed' || status === 'rejected') {
       const record = userInfo.afterSales.find(r => r.id === id);
       if (record) {
         targetOrderToUpdate = record.orderId;
-        targetOrderStatus = status === 'completed' ? 'afterSalesCompleted' : 'afterSalesRejected';
+        targetOrderStatus = 'completed';
       }
     }
     
@@ -756,7 +758,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return r;
     });
 
-    let updated = { ...userInfo, afterSales };
+    const counts = { ...userInfo.orderCounts };
+    if (status === 'completed' || status === 'rejected') {
+      const record = userInfo.afterSales.find(r => r.id === id);
+      if (record && record.status !== 'completed' && record.status !== 'rejected') {
+        counts.afterSales = Math.max(0, (counts.afterSales || 0) - 1);
+      }
+    }
+
+    let updated = { ...userInfo, afterSales, orderCounts: counts };
 
     if (targetOrderToUpdate) {
       updated.orders = updated.orders.map(o => {
@@ -769,7 +779,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             logistics: {
               ...currentLogistics,
               trajectory: [
-                { time: new Date().toLocaleString(), location: '售后中心', status: newStatus === 'afterSalesCompleted' ? '售后处理完成' : '售后申请已被拒绝' },
+                { time: new Date().toLocaleString(), location: '售后中心', status: status === 'completed' ? '售后处理完成' : '售后申请已被拒绝' },
                 ...(currentLogistics.trajectory || [])
               ]
             }

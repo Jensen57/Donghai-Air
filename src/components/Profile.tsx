@@ -134,11 +134,15 @@ export default function Profile({ onCheckout, onTabChange, onShowAfterSales, onS
     );
   }
 
+  const activeAfterSalesCount = userInfo?.afterSales?.filter(
+    r => r.status !== 'completed' && r.status !== 'rejected'
+  ).length || 0;
+
   const orderTabs = [
     { icon: CreditCard, label: '待付款', count: userInfo?.orderCounts?.pendingPayment },
     { icon: Box, label: '待发货', count: userInfo?.orderCounts?.pendingShipment },
     { icon: Truck, label: '待收货', count: userInfo?.orderCounts?.pendingReceipt },
-    { icon: MessageSquare, label: '待售后', count: userInfo?.orderCounts?.afterSales, onClick: onShowAfterSales },
+    { icon: MessageSquare, label: '待售后', count: activeAfterSalesCount, onClick: onShowAfterSales },
   ];
 
   return (

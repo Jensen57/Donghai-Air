@@ -257,6 +257,9 @@ function AppContent() {
           <Orders 
             key={ordersKey}
             onApplyAfterSales={handleApplyAfterSales} 
+            onShowAfterSales={(orderId, productId) => {
+              setAfterSalesInfo({ orderId, productId });
+            }}
             initialOrderId={targetOrderId} 
             onClearTarget={() => setTargetOrderId(undefined)}
             onBack={prevTab ? () => {
@@ -427,6 +430,9 @@ function AppContent() {
               <Orders 
                 key={ordersKey}
                 onApplyAfterSales={handleApplyAfterSales} 
+                onShowAfterSales={(orderId, productId) => {
+                  setAfterSalesInfo({ orderId, productId });
+                }}
                 onBack={() => setShowInternalOrders(false)}
                 isInternalOnly={true} 
                 onCheckout={handleCheckout}

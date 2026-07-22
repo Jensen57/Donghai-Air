@@ -136,25 +136,34 @@ export default function Checkout({
 
     setIsSubmitting(true);
     try {
-      // Create order
-      const id = await addOrder({
-        items: checkoutItemsList.map(i => ({
-          productId: i.productId,
-          name: i.name,
-          image: i.image,
-          price: i.price,
-          points: i.points,
-          isPointsOnly: i.isPointsOnly,
-          specs: i.specs,
-          quantity: i.quantity
-        })),
-        totalAmount: totalPrice,
-        totalPoints: totalPoints,
-        address: defaultAddress,
-        paymentMethod: isPurePoints ? '积分兑换' : paymentMethod
-      });
-      setOrderId(id);
-      lastOrderId.current = id;
+      // Create separate orders for each item so they can be managed / requested for after-sales individually
+      const createdIds: string[] = [];
+      for (const item of checkoutItemsList) {
+        const itemTotalPoints = (item.points || item.price || 0) * item.quantity;
+        const itemTotalPrice = (item.price || 0) * item.quantity;
+
+        const id = await addOrder({
+          items: [{
+            productId: item.productId,
+            name: item.name,
+            image: item.image,
+            price: item.price,
+            points: item.points,
+            isPointsOnly: item.isPointsOnly,
+            specs: item.specs,
+            quantity: item.quantity
+          }],
+          totalAmount: itemTotalPrice,
+          totalPoints: itemTotalPoints,
+          address: defaultAddress,
+          paymentMethod: isPurePoints ? '积分兑换' : paymentMethod
+        });
+        createdIds.push(id);
+      }
+
+      const idsStr = createdIds.join(', ');
+      setOrderId(idsStr);
+      lastOrderId.current = idsStr;
       setIsSubmitting(false);
       
       setShowPayment(true);
@@ -213,8 +222,11 @@ export default function Checkout({
         }, 1500);
       });
 
-      // Update order status
-      await updateOrderStatus(currentOrderId, 'pendingShipment');
+      // Update order status for each order ID
+      const orderIdList = currentOrderId.split(',').map(s => s.trim());
+      for (const singleId of orderIdList) {
+        await updateOrderStatus(singleId, 'pendingShipment');
+      }
       
       // Update global stock and sales (Mutation of imported constants)
       checkoutItemsList.forEach(item => {

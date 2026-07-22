@@ -8,7 +8,9 @@ import {
   User,
   Briefcase,
   ShieldCheck,
-  Lock
+  Lock,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -22,6 +24,7 @@ export default function EmployeeAuth({ onBack, onShowEmployeeMall }: { onBack: (
   const [employeeId, setEmployeeId] = useState('');
   const [name, setName] = useState('');
   const [oaPassword, setOaPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
 
   const authRecord = userInfo?.employeeAuth;
   const status = authRecord?.status || 'none';
@@ -183,12 +186,19 @@ export default function EmployeeAuth({ onBack, onShowEmployeeMall }: { onBack: (
               <div className="flex items-center gap-3 bg-gray-50 rounded-xl px-4 h-12">
                 <Lock className="w-4 h-4 text-gray-400" />
                 <input 
-                  type="password" 
+                  type={showPassword ? "text" : "password"} 
                   value={oaPassword}
                   onChange={(e) => setOaPassword(e.target.value)}
                   placeholder="请输入OA密码"
                   className="flex-1 bg-transparent text-xs text-gray-800 focus:outline-none"
                 />
+                <button 
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="text-gray-400 hover:text-gray-600 focus:outline-none p-1 transition-colors"
+                >
+                  {showPassword ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                </button>
               </div>
             </div>
           </div>
