@@ -22,7 +22,7 @@ import { Badge } from '@/components/ui/badge';
 import { useAuth, AfterSalesRecord, AfterSalesType, AfterSalesStatus } from '../context/AuthContext';
 
 const STATUS_MAP: Record<AfterSalesStatus, { label: string, color: string, icon: any }> = {
-  pendingAudit: { label: '售后中', color: 'text-orange-500', icon: Clock },
+  pendingAudit: { label: '退货中', color: 'text-orange-500', icon: Clock },
   approved: { label: '审核通过', color: 'text-green-500', icon: CheckCircle2 },
   rejected: { label: '审核拒绝', color: 'text-red-500', icon: AlertCircle },
   pendingReturn: { label: '待寄回', color: 'text-blue-500', icon: Truck },
@@ -31,7 +31,7 @@ const STATUS_MAP: Record<AfterSalesStatus, { label: string, color: string, icon:
   cancelled: { label: '已取消', color: 'text-gray-300', icon: X }
 };
 
-const AIRLINE_ADDRESS = "广东省深圳市宝安区航站四路东海航空基地 售后部";
+const AIRLINE_ADDRESS = "广东省深圳市宝安区航站四路东海航空基地 退货部";
 const AIRLINE_PHONE = "0755-12345678";
 
 interface AfterSalesProps {
@@ -43,10 +43,26 @@ interface AfterSalesProps {
 export default function AfterSales({ orderId, productId, onBack }: AfterSalesProps) {
   const { userInfo, applyAfterSales, updateAfterSalesStatus, showNotification } = useAuth();
   
-  const existingRecord = userInfo?.afterSales?.find(r => r.orderId === orderId);
+  const order = userInfo?.orders.find(o => o.id === orderId);
 
-  const [view, setView] = useState<'list' | 'apply' | 'detail'>(() => {
+  // Selected product ID state
+  const [selectedProductId, setSelectedProductId] = useState<string | undefined>(() => {
+    if (productId) return productId;
+    if (order && order.items.length === 1) return order.items[0].productId;
+    return undefined;
+  });
+
+  const activeProductId = selectedProductId || productId || (order && order.items.length === 1 ? order.items[0].productId : undefined);
+
+  const existingRecord = userInfo?.afterSales?.find(
+    r => r.orderId === orderId && (activeProductId ? r.productId === activeProductId : true)
+  );
+
+  const [view, setView] = useState<'list' | 'selectProduct' | 'apply' | 'detail'>(() => {
     if (orderId) {
+      if (order && order.items.length > 1 && !productId) {
+        return 'selectProduct';
+      }
       return existingRecord ? 'detail' : 'apply';
     }
     return 'list';
@@ -73,15 +89,14 @@ export default function AfterSales({ orderId, productId, onBack }: AfterSalesPro
   const [reason, setReason] = useState('七天无理由退换货');
   const [images, setImages] = useState<string[]>(['https://images.unsplash.com/photo-1542496658-e33a6d0d50f6?w=400&q=80']);
   const [returnAddress, setReturnAddress] = useState<string>('');
-  const [recipientName, setRecipientName] = useState<string>('东海航空自营店 售后部 (原发件人)');
-  const [recipientAddress, setRecipientAddress] = useState<string>('广东省深圳市宝安区航站四路东海航空基地 售后中心 (原发货地址)');
+  const [recipientName, setRecipientName] = useState<string>('东海航空自营店 退货部 (原发件人)');
+  const [recipientAddress, setRecipientAddress] = useState<string>('广东省深圳市宝安区航站四路东海航空基地 退货中心 (原发货地址)');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Tracking Form State / Apply Tracking Number
   const [trackingNumber, setTrackingNumber] = useState('');
 
-  const order = userInfo?.orders.find(o => o.id === orderId);
-  const product = order?.items.find(i => i.productId === productId);
+  const product = order?.items.find(i => i.productId === activeProductId);
 
   React.useEffect(() => {
     if (order?.address && !returnAddress) {
@@ -91,6 +106,11 @@ export default function AfterSales({ orderId, productId, onBack }: AfterSalesPro
   }, [order?.address]);
 
   const handleApply = async () => {
+    const targetProductId = activeProductId || order?.items[0]?.productId;
+    if (!targetProductId) {
+      showNotification('提示', '请选择需要退货的商品');
+      return;
+    }
     if (!recipientName.trim() || !recipientAddress.trim()) {
       showNotification('提示', '请填写退货收货人及发货地址');
       return;
@@ -104,7 +124,7 @@ export default function AfterSales({ orderId, productId, onBack }: AfterSalesPro
     try {
       const newId = await applyAfterSales({
         orderId: orderId!,
-        productId: productId!,
+        productId: targetProductId,
         type,
         reason,
         images,
@@ -116,7 +136,7 @@ export default function AfterSales({ orderId, productId, onBack }: AfterSalesPro
       const newRecord: AfterSalesRecord = {
         id: newId,
         orderId: orderId!,
-        productId: productId!,
+        productId: targetProductId,
         type,
         reason,
         images,
@@ -125,12 +145,12 @@ export default function AfterSales({ orderId, productId, onBack }: AfterSalesPro
         trackingNumber,
         status: 'pendingAudit',
         createdAt: new Date().toLocaleString(),
-        isEmployeeChannel: order?.isInternal || productId!.startsWith('emp-')
+        isEmployeeChannel: order?.isInternal || targetProductId.startsWith('emp-')
       };
       
       setSelectedRecord(newRecord);
       setView('detail');
-      showNotification('成功', '退货申请已提交，订单已进入售后中状态');
+      showNotification('成功', '退货申请已提交，订单已进入退货中状态');
     } catch (error) {
       showNotification('错误', '申请失败，请稍后再试');
     } finally {
@@ -170,7 +190,7 @@ export default function AfterSales({ orderId, productId, onBack }: AfterSalesPro
       <div className="flex flex-col h-full bg-gray-50">
         <div className="bg-white px-4 pt-12 pb-4 flex items-center gap-2 sticky top-0 z-50 border-b">
           <ChevronLeft className="w-6 h-6 cursor-pointer" onClick={onBack} />
-          <h1 className="text-lg font-bold">售后记录</h1>
+          <h1 className="text-lg font-bold">退货记录</h1>
         </div>
 
         {/* Filter Tabs */}
@@ -181,7 +201,7 @@ export default function AfterSales({ orderId, productId, onBack }: AfterSalesPro
               listTab === 'processing' ? 'text-donghai font-bold' : 'text-gray-400'
             }`}
           >
-            <span>售后中</span>
+            <span>退货中</span>
             {listTab === 'processing' && (
               <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-donghai rounded-full" />
             )}
@@ -203,7 +223,7 @@ export default function AfterSales({ orderId, productId, onBack }: AfterSalesPro
           {filteredRecords.map((record) => {
             const order = userInfo?.orders.find(o => o.id === record.orderId);
             const product = order?.items.find(i => i.productId === record.productId);
-            const status = STATUS_MAP[record.status];
+            const status = (record?.status && STATUS_MAP[record.status]) || STATUS_MAP.pendingAudit;
             const Icon = status.icon;
 
             return (
@@ -218,7 +238,7 @@ export default function AfterSales({ orderId, productId, onBack }: AfterSalesPro
                 <div className="flex items-center justify-between mb-4 pb-3 border-b border-gray-50">
                   <div className="flex items-center text-[10px] text-gray-400">
                     <FileText className="w-3.5 h-3.5 mr-1" />
-                    <span>售后单号: {record.id}</span>
+                    <span>退货单号: {record.id}</span>
                   </div>
                   <div className={`flex items-center gap-1 text-[10px] font-bold ${status.color}`}>
                     <Icon className="w-3 h-3" />
@@ -245,9 +265,108 @@ export default function AfterSales({ orderId, productId, onBack }: AfterSalesPro
           {filteredRecords.length === 0 && (
             <div className="flex flex-col items-center justify-center py-20 text-gray-400">
               <MessageSquare className="w-16 h-16 mb-4 opacity-10" />
-              <p className="text-sm">暂无{listTab === 'processing' ? '售后中' : '已完成'}记录</p>
+              <p className="text-sm">暂无{listTab === 'processing' ? '退货中' : '已完成'}记录</p>
             </div>
           )}
+        </div>
+      </div>
+    );
+  }
+
+  // Select Product View (when order has multiple products)
+  if (view === 'selectProduct' && order) {
+    return (
+      <div className="flex flex-col h-full bg-gray-50">
+        <div className="bg-white px-4 pt-12 pb-4 flex items-center justify-between sticky top-0 z-50 border-b">
+          <div className="flex items-center gap-2">
+            <ChevronLeft className="w-6 h-6 cursor-pointer" onClick={onBack} />
+            <h1 className="text-lg font-bold">选择退货商品</h1>
+          </div>
+          {order.isInternal && (
+            <Badge className="bg-blue-50 text-blue-500 text-[10px] h-6 px-3 border-none">员工专属通道</Badge>
+          )}
+        </div>
+
+        <div className="p-3 bg-orange-50/80 border-b border-orange-100 flex items-center justify-between text-xs text-orange-700">
+          <span className="font-medium">此订单包含多件商品，请选择需退货的产品</span>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-4 space-y-3">
+          {order.items.map((item, idx) => {
+            const itemRecord = userInfo?.afterSales?.find(
+              r => r.orderId === order.id && r.productId === item.productId
+            );
+            const status = itemRecord ? (STATUS_MAP[itemRecord.status] || STATUS_MAP.pendingAudit) : null;
+            const Icon = status?.icon;
+
+            return (
+              <Card 
+                key={item.productId || idx}
+                className="p-4 border-none shadow-sm bg-white rounded-2xl flex flex-col space-y-3"
+              >
+                <div className="flex gap-3 items-center">
+                  <img 
+                    src={item.image} 
+                    alt={item.name} 
+                    className="w-16 h-16 rounded-lg object-cover bg-gray-50 flex-shrink-0" 
+                    referrerPolicy="no-referrer" 
+                  />
+                  <div className="flex-1 min-w-0">
+                    <h4 className="text-xs font-bold text-gray-800 line-clamp-1 mb-1">{item.name}</h4>
+                    {item.specs && Object.keys(item.specs).length > 0 && (
+                      <p className="text-[10px] text-gray-400 mb-1">
+                        {Object.values(item.specs).join('/')}
+                      </p>
+                    )}
+                    <div className="flex items-center justify-between mt-1">
+                      <span className="text-[11px] text-gray-500">数量: x{item.quantity}</span>
+                      <div className="text-donghai font-bold text-xs flex items-center gap-0.5">
+                        <Coins className="w-3 h-3" />
+                        <span>{item.points || item.price} 积分</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="pt-2 border-t border-gray-50 flex items-center justify-between">
+                  {itemRecord ? (
+                    <>
+                      <div className={`flex items-center gap-1 text-[11px] font-bold ${status!.color}`}>
+                        <Icon className="w-3.5 h-3.5" />
+                        <span>{status!.label}</span>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="rounded-full text-xs h-8 px-4 border-donghai text-donghai font-bold hover:bg-donghai/5"
+                        onClick={() => {
+                          setSelectedProductId(item.productId);
+                          setSelectedRecord(itemRecord);
+                          setView('detail');
+                        }}
+                      >
+                        查看退货
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      <span className="text-[11px] text-gray-400">未申请退货</span>
+                      <Button
+                        size="sm"
+                        className="rounded-full text-xs h-8 px-4 bg-donghai text-white font-bold hover:bg-donghai/90"
+                        onClick={() => {
+                          setSelectedProductId(item.productId);
+                          setView('apply');
+                        }}
+                      >
+                        申请退货
+                      </Button>
+                    </>
+                  )}
+                </div>
+              </Card>
+            );
+          })}
         </div>
       </div>
     );
@@ -259,7 +378,14 @@ export default function AfterSales({ orderId, productId, onBack }: AfterSalesPro
       <div className="flex flex-col h-full bg-gray-50 relative">
         <div className="bg-white px-4 pt-12 pb-4 flex items-center justify-between sticky top-0 z-50 border-b">
           <div className="flex items-center gap-2">
-            <ChevronLeft className="w-6 h-6 cursor-pointer" onClick={onBack} />
+            <ChevronLeft className="w-6 h-6 cursor-pointer" onClick={() => {
+              if (order && order.items.length > 1) {
+                setSelectedProductId(undefined);
+                setView('selectProduct');
+              } else {
+                onBack();
+              }
+            }} />
             <h1 className="text-lg font-bold">申请退货</h1>
           </div>
           {order?.isInternal && (
@@ -339,7 +465,7 @@ export default function AfterSales({ orderId, productId, onBack }: AfterSalesPro
 
   // Detail View
   if (view === 'detail' && selectedRecord) {
-    const status = STATUS_MAP[selectedRecord.status];
+    const status = (selectedRecord?.status && STATUS_MAP[selectedRecord.status]) || STATUS_MAP.pendingAudit;
     const Icon = status.icon;
     const order = userInfo?.orders.find(o => o.id === selectedRecord.orderId);
     const product = order?.items.find(i => i.productId === selectedRecord.productId);
@@ -349,13 +475,16 @@ export default function AfterSales({ orderId, productId, onBack }: AfterSalesPro
         <div className="bg-white px-4 pt-12 pb-4 flex items-center justify-between sticky top-0 z-50 border-b">
           <div className="flex items-center gap-2">
             <ChevronLeft className="w-6 h-6 cursor-pointer" onClick={() => {
-              if (orderId) {
+              if (order && order.items.length > 1) {
+                setSelectedProductId(undefined);
+                setView('selectProduct');
+              } else if (orderId) {
                 onBack();
               } else {
                 setView('list');
               }
             }} />
-            <h1 className="text-lg font-bold">售后详情</h1>
+            <h1 className="text-lg font-bold">退货详情</h1>
           </div>
           {selectedRecord.isEmployeeChannel && (
             <Badge className="bg-blue-50 text-blue-500 text-[10px] h-6 px-3 border-none">员工专属通道</Badge>
@@ -377,11 +506,12 @@ export default function AfterSales({ orderId, productId, onBack }: AfterSalesPro
               </div>
               <p className="text-xs opacity-80">
                 {selectedRecord.status === 'pendingAudit' && '您的申请已提交，商品正寄回，等待商家确认收货。'}
-                {selectedRecord.status === 'completed' && '售后流程已完成'}
+                {selectedRecord.status === 'completed' && '退货流程已完成'}
               </p>
             </div>
             <Icon className="w-12 h-12 opacity-20" />
           </div>
+
 
           {/* Prompt Notice */}
           <Card className="p-4 border-none shadow-sm bg-orange-50 rounded-2xl flex items-start gap-3">

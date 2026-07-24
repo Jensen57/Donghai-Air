@@ -101,7 +101,7 @@ export interface AfterSalesRecord {
 }
 
 export type CompensationType = 'cash' | 'points';
-export type CompensationStatus = 'pendingAudit' | 'approved' | 'rejected' | 'processing' | 'completed';
+export type CompensationStatus = 'pendingAudit' | 'approved' | 'rejected';
 
 export interface CompensationRecord {
   id: string;
@@ -173,8 +173,8 @@ interface UserInfo {
   };
   compensationCounts: {
     pendingAudit: number;
-    processing: number;
-    completed: number;
+    approved: number;
+    rejected: number;
   };
 }
 
@@ -263,12 +263,41 @@ const DEFAULT_USER_DATA: Partial<UserInfo> = {
     }
   ],
   afterSales: [],
-  compensations: [],
+  compensations: [
+    {
+      id: 'CP20260418001',
+      type: 'points',
+      flightNo: 'DZ6201',
+      flightDate: '2026-04-18',
+      passengerName: '张三',
+      passengerIdCard: '[身份证] 440301199001011234',
+      reason: '航班延误',
+      images: ['https://picsum.photos/seed/flight1/400/400'],
+      status: 'pendingAudit',
+      amount: 0,
+      points: 300,
+      createdAt: '2026-04-18 15:30:00'
+    },
+    {
+      id: 'CP20260410002',
+      type: 'cash',
+      flightNo: 'DZ6202',
+      flightDate: '2026-04-10',
+      passengerName: '张三',
+      passengerIdCard: '[身份证] 440301199001011234',
+      reason: '行李延误',
+      images: ['https://picsum.photos/seed/flight2/400/400'],
+      status: 'approved',
+      amount: 200,
+      points: 0,
+      createdAt: '2026-04-10 11:20:00'
+    }
+  ],
   pointsRecords: [
     { id: '1', amount: 500, type: 'purchase', description: '购买积分', balance: 1250, createdAt: '2026-04-20 10:00:00' },
     { id: '2', amount: 300, type: 'compensation', description: '延误赔付积分', balance: 750, createdAt: '2026-04-18 15:30:00' },
     { id: '3', amount: -200, type: 'consumption', description: '兑换模型扣除', balance: 450, createdAt: '2026-04-15 09:00:00' },
-    { id: '4', amount: 100, type: 'refund', description: '售后退回积分', balance: 650, createdAt: '2026-04-10 11:45:00' },
+    { id: '4', amount: 100, type: 'refund', description: '退货退回积分', balance: 650, createdAt: '2026-04-10 11:45:00' },
     { id: '5', amount: 550, type: 'purchase', description: '购买积分', balance: 550, createdAt: '2026-04-05 14:20:00' },
   ],
   messages: [
@@ -298,9 +327,9 @@ const DEFAULT_USER_DATA: Partial<UserInfo> = {
     afterSales: 0,
   },
   compensationCounts: {
-    pendingAudit: 0,
-    processing: 0,
-    completed: 0,
+    pendingAudit: 1,
+    approved: 1,
+    rejected: 0,
   }
 };
 
@@ -316,7 +345,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const parsedUser = JSON.parse(savedUser);
       setUserInfo({
         ...DEFAULT_USER_DATA,
-        ...parsedUser
+        ...parsedUser,
+        compensations: parsedUser.compensations && parsedUser.compensations.length > 0 ? parsedUser.compensations : DEFAULT_USER_DATA.compensations,
+        compensationCounts: parsedUser.compensationCounts || DEFAULT_USER_DATA.compensationCounts
       } as UserInfo);
       setIsLoggedIn(true);
     }
@@ -576,7 +607,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           id: 'PR' + Date.now().toString().slice(-8),
           amount: -orderPoints,
           type: 'consumption',
-          description: `商品兑换扣除积分 (订单号: ${orderId})`,
+          description: '商品兑换扣除积分',
           balance: newBalance,
           createdAt: new Date().toLocaleString()
         };
@@ -689,8 +720,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             id: 'MSG' + Date.now().toString().slice(-8),
             time: new Date().toLocaleString(),
             isRead: false,
-            title: '售后申请已提交',
-            content: `您的售后申请 ${id} 已提交，请耐心等待审核。`,
+            title: '退货申请已提交',
+            content: `您的退货申请 ${id} 已提交，请耐心等待审核。`,
             type: 'order',
             businessId: record.orderId
           };
@@ -711,7 +742,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           return updated;
         });
 
-        showNotification('售后申请已提交', `申请单号: ${id}`);
+        showNotification('退货申请已提交', `申请单号: ${id}`);
         resolve(id);
       }, 800);
     });
@@ -779,7 +810,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             logistics: {
               ...currentLogistics,
               trajectory: [
-                { time: new Date().toLocaleString(), location: '售后中心', status: status === 'completed' ? '售后处理完成' : '售后申请已被拒绝' },
+                { time: new Date().toLocaleString(), location: '退货中心', status: status === 'completed' ? '退货处理完成' : '退货申请已被拒绝' },
                 ...(currentLogistics.trajectory || [])
               ]
             }
@@ -795,7 +826,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         id: 'PR' + Date.now().toString().slice(-8),
         amount: pointsToRefund,
         type: 'refund',
-        description: `商品退货积分退回 (订单号: ${refundOrderId})`,
+        description: '商品退货积分退回',
         balance: newBalance,
         createdAt: new Date().toLocaleString()
       };
@@ -820,12 +851,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       showNotification('积分已退回', `${pointsToRefund} 积分已入账`);
     } else {
       addMessage({
-        title: '售后状态更新',
-        content: `您的售后申请 ${id} 状态已更新为: ${status === 'approved' ? '审核通过' : status === 'rejected' ? '已拒绝' : status === 'pendingReturn' ? '待退货' : '已完成'}。`,
+        title: '退货状态更新',
+        content: `您的退货申请 ${id} 状态已更新为: ${status === 'approved' ? '审核通过' : status === 'rejected' ? '已拒绝' : status === 'pendingReturn' ? '待退货' : '已完成'}。`,
         type: 'order',
         businessId: id
       });
-      showNotification('售后状态更新', `申请单号: ${id}`);
+      showNotification('退货状态更新', `申请单号: ${id}`);
     }
 
     setUserInfo(updated);
@@ -870,26 +901,54 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!userInfo) return;
     
     let oldStatus: CompensationStatus | undefined;
+    let targetRecord: CompensationRecord | undefined;
+
     const compensations = userInfo.compensations.map(r => {
       if (r.id === id) {
         oldStatus = r.status;
-        return { ...r, status, ...extra };
+        targetRecord = { ...r, status, ...extra };
+        return targetRecord;
       }
       return r;
     });
 
-    if (!oldStatus) return;
+    if (!oldStatus || !targetRecord) return;
+
+    let updatedPoints = userInfo.points;
+    let newPointsRecords = [...(userInfo.pointsRecords || [])];
+
+    // 同意赔付（赔付成功）时，如果是积分赔付且之前未发积分，则给用户自动到账积分
+    if (status === 'approved' && oldStatus !== 'approved') {
+      if (targetRecord.type === 'points' && targetRecord.points > 0) {
+        updatedPoints = userInfo.points + targetRecord.points;
+        const newPointsRecord: PointsRecord = {
+          id: 'PR' + Date.now().toString().slice(-8),
+          amount: targetRecord.points,
+          type: 'compensation',
+          description: `航班赔付积分 (${targetRecord.flightNo})`,
+          balance: updatedPoints,
+          createdAt: new Date().toLocaleString()
+        };
+        newPointsRecords = [newPointsRecord, ...newPointsRecords];
+      }
+    }
 
     const counts = { ...userInfo.compensationCounts };
-    // Simplified count update logic
-    if (oldStatus === 'pendingAudit') counts.pendingAudit = Math.max(0, counts.pendingAudit - 1);
-    if (oldStatus === 'processing') counts.processing = Math.max(0, counts.processing - 1);
-    
-    if (status === 'pendingAudit') counts.pendingAudit++;
-    if (status === 'processing') counts.processing++;
-    if (status === 'completed') counts.completed++;
+    if (oldStatus === 'pendingAudit') counts.pendingAudit = Math.max(0, (counts.pendingAudit || 0) - 1);
+    if (oldStatus === 'approved') counts.approved = Math.max(0, (counts.approved || 0) - 1);
+    if (oldStatus === 'rejected') counts.rejected = Math.max(0, (counts.rejected || 0) - 1);
 
-    const updated = { ...userInfo, compensations, compensationCounts: counts };
+    if (status === 'pendingAudit') counts.pendingAudit = (counts.pendingAudit || 0) + 1;
+    if (status === 'approved') counts.approved = (counts.approved || 0) + 1;
+    if (status === 'rejected') counts.rejected = (counts.rejected || 0) + 1;
+
+    const updated = { 
+      ...userInfo, 
+      points: updatedPoints,
+      pointsRecords: newPointsRecords,
+      compensations, 
+      compensationCounts: counts 
+    };
     setUserInfo(updated);
     localStorage.setItem('donghai_user', JSON.stringify(updated));
   };

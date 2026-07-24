@@ -108,8 +108,23 @@ export default function SearchPage({
     );
 
     // Filter out internal products if user is not an employee or their auth is not approved
-    if (!userInfo?.isEmployee || userInfo?.employeeAuth?.status !== 'approved') {
+    const isEmployeeApproved = Boolean(userInfo?.isEmployee && userInfo?.employeeAuth?.status === 'approved');
+    if (!isEmployeeApproved) {
       filtered = filtered.filter(p => !p.id.startsWith('emp-'));
+    } else {
+      // If employee is approved: for any product, if there exists an internal counterpart,
+      // and we are showing both, we should only keep the internal counterpart and filter out the original/points ones.
+      filtered = filtered.filter(p => {
+        if (!p.id.startsWith('emp-')) {
+          const hasInternal = INTERNAL_PRODUCTS.some(
+            emp => emp.name === `【员工内购】${p.name}` || emp.name === p.name
+          );
+          if (hasInternal) {
+            return false;
+          }
+        }
+        return true;
+      });
     }
 
     if (filterType !== 'all') {

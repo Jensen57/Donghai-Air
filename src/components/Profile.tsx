@@ -14,10 +14,6 @@ import {
   Headphones, 
   LogOut,
   UserCircle,
-  CreditCard,
-  Box,
-  Truck,
-  MessageSquare,
   ShieldCheck,
   Bell,
   HelpCircle,
@@ -134,28 +130,17 @@ export default function Profile({ onCheckout, onTabChange, onShowAfterSales, onS
     );
   }
 
-  const activeAfterSalesCount = userInfo?.afterSales?.filter(
-    r => r.status !== 'completed' && r.status !== 'rejected'
-  ).length || 0;
-
-  const orderTabs = [
-    { icon: CreditCard, label: '待付款', count: userInfo?.orderCounts?.pendingPayment },
-    { icon: Box, label: '待发货', count: userInfo?.orderCounts?.pendingShipment },
-    { icon: Truck, label: '待收货', count: userInfo?.orderCounts?.pendingReceipt },
-    { icon: MessageSquare, label: '待售后', count: activeAfterSalesCount, onClick: onShowAfterSales },
-  ];
-
   return (
-    <div className="flex flex-col h-full bg-gray-50">
-      {/* Header with a rich premium gradient, increased height and breathing room */}
-      <div className="bg-gradient-to-b from-[#006687] to-[#00516b] text-white px-6 pt-16 pb-24 relative overflow-hidden">
-        <div className="flex items-start justify-between mb-6 relative z-10">
-          <div className="flex items-center gap-4">
+    <div className="flex flex-col min-h-full bg-gray-50">
+      {/* Top Header - Gradient background with ample padding for MiniProgram capsule */}
+      <div className="bg-gradient-to-b from-[#006687] to-[#00516b] text-white px-5 pt-14 pb-5 relative overflow-hidden">
+        <div className="flex items-center justify-between relative z-10">
+          <div className="flex items-center gap-3.5">
             <div className="relative">
               <img 
                 src={userInfo?.avatar || 'https://picsum.photos/seed/avatar/100/100'} 
                 alt="avatar" 
-                className="w-16 h-16 rounded-full border-2 border-white/50 shadow-md object-cover"
+                className="w-13 h-13 rounded-full border-2 border-white/50 shadow-md object-cover"
               />
               {userInfo?.isEmployee && (
                 <div className="absolute -bottom-1 -right-1 bg-yellow-400 rounded-full p-1 border-2 border-[#00516b] z-20 shadow">
@@ -165,81 +150,34 @@ export default function Profile({ onCheckout, onTabChange, onShowAfterSales, onS
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-xl font-bold tracking-wide">{userInfo?.nickname}</h2>
+                <h2 className="text-base font-bold tracking-wide">{userInfo?.nickname}</h2>
                 <Button 
                   variant="ghost" 
                   size="icon" 
                   onClick={() => setShowEditModal(true)}
-                  className="w-6 h-6 rounded-full bg-white/15 hover:bg-white/25 p-0 transition-colors"
+                  className="w-5 h-5 rounded-full bg-white/15 hover:bg-white/25 p-0 transition-colors"
                 >
-                  <Edit3 className="w-3 h-3 text-white/95" />
+                  <Edit3 className="w-2.5 h-2.5 text-white/95" />
                 </Button>
               </div>
-              <div className="flex items-center gap-2 mt-1">
-                {userInfo && userInfo.isEmployee && userInfo.employeeAuth?.status === 'approved' && (
-                  <div className="border border-white/30 text-white bg-white/15 px-2 py-0.5 rounded-full text-[9px] font-medium backdrop-blur-sm tracking-wider">
+              {userInfo && userInfo.isEmployee && userInfo.employeeAuth?.status === 'approved' && (
+                <div className="mt-1">
+                  <div className="border border-white/30 text-white bg-white/15 px-2 py-0.5 rounded-full text-[9px] font-medium backdrop-blur-sm tracking-wider inline-block">
                     已认证员工
                   </div>
-                )}
-              </div>
-            </div>
-          </div>
-          <div className="flex gap-4">
-          </div>
-        </div>
-
-        {/* Points Card with premium glassmorphic effect */}
-        <div className="bg-white/12 backdrop-blur-md rounded-2xl p-4 flex items-center justify-between relative z-10 border border-white/15 mb-0 shadow-lg">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-yellow-400/25 flex items-center justify-center shadow-inner">
-              <Star className="w-5 h-5 text-yellow-400 fill-yellow-400 animate-pulse" />
-            </div>
-            <div>
-              <div className="text-[10px] text-white/70 font-medium uppercase tracking-wider">积分余额</div>
-              <div className="text-xl font-bold text-yellow-300 tracking-tight">{userInfo?.points}</div>
-            </div>
-          </div>
-          <div className="text-right">
-            <div className="text-[10px] text-white/60">有效期至: {userInfo?.pointsExpiry}</div>
-            <div className="flex flex-col items-end gap-1 mt-1">
-              <Button 
-                onClick={onShowPointsCenter}
-                className="bg-yellow-400 text-donghai text-[10px] font-bold h-6 px-3.5 rounded-full hover:bg-yellow-300 shadow-sm transition-all active:scale-95"
-              >
-                积分中心
-              </Button>
-              <Button variant="link" className="text-white/80 hover:text-white text-[10px] p-0 h-auto font-medium transition-colors" onClick={onShowPointsCenter}>积分明细 &gt;</Button>
+                </div>
+              )}
             </div>
           </div>
         </div>
-
         {/* Decorative background logo */}
-        <div className="absolute top-0 right-0 w-48 h-48 opacity-[0.08] -mr-12 -mt-12 pointer-events-none">
+        <div className="absolute top-0 right-0 w-36 h-36 opacity-[0.08] -mr-8 -mt-8 pointer-events-none">
           <Plane className="w-full h-full text-white" />
         </div>
       </div>
 
-      {/* Main Content overlapping the header with a modern, clean card layout */}
-      <div className="px-4 -mt-3 relative z-20 pb-20 space-y-3">
-        
-        {/* Order Management */}
-        <Card className="py-2.5 px-3.5 border-none shadow-sm bg-white rounded-2xl active:bg-gray-50 transition-colors">
-          <div className="flex items-center justify-between mb-2" onClick={() => onTabChange('orders')}>
-            <h3 className="text-sm font-bold text-gray-800">订单管理</h3>
-            <div className="flex items-center text-[10px] text-gray-400">
-              全部订单 <ChevronRight className="w-3 h-3" />
-            </div>
-          </div>
-          <div className="flex items-center justify-around mb-0.5">
-            {orderTabs.map((tab: any, i) => (
-              <div key={i} className="text-center flex-1 relative" onClick={tab.onClick || (() => onTabChange('orders'))}>
-                <div className="text-base font-bold text-gray-800">{tab.count || 0}</div>
-                <div className="text-[10px] text-gray-400 mt-0.5">{tab.label}</div>
-              </div>
-            ))}
-          </div>
-        </Card>
-
+      {/* Main Content Area */}
+      <div className="p-4 space-y-3 pb-24">
         {/* Menu List */}
         <Card className="overflow-hidden border-none shadow-sm bg-white rounded-2xl">
           {[
@@ -277,7 +215,7 @@ export default function Profile({ onCheckout, onTabChange, onShowAfterSales, onS
               <div 
                 key={index}
                 onClick={item.onClick}
-                className={`flex items-center justify-between p-3 active:bg-gray-50 transition-colors ${
+                className={`flex items-center justify-between p-3.5 active:bg-gray-50 transition-colors ${
                   index !== arr.length - 1 ? 'border-b border-gray-50' : ''
                 }`}
               >

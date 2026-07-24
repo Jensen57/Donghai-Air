@@ -173,7 +173,7 @@ export default function EmployeeMall({ onBack, onCheckout, onShowLogin, onShowEm
                 </h3>
                 <div className="flex items-baseline gap-1.5 mb-1">
                   <span className="text-sm font-bold text-red-500">{product.points || product.price} 积分</span>
-                  <span className="text-[9px] text-gray-400 line-through">{(product.originalPrice * 10) || ((product.points || product.price) * 1.5)} 积分</span>
+                  <span className="text-[9px] text-gray-400 line-through">{product.originalPrice || Math.round((product.points || product.price) * 1.5)} 积分</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-[9px] text-gray-400">已售 {product.sales}</span>
@@ -203,7 +203,7 @@ export default function EmployeeMall({ onBack, onCheckout, onShowLogin, onShowEm
             <ul className="text-[10px] text-gray-500 space-y-2 list-disc pl-4">
               <li>内购专区仅限东海航空认证员工本人购买，严禁倒卖。</li>
               <li>每款商品均设有个人限购数量，超出后将无法下单。</li>
-              <li>内购商品享受品牌正品保障，售后规则详见商品详情。</li>
+              <li>内购商品享受品牌正品保障，退货规则详见商品详情。</li>
               <li>支付方式支持微信支付、工资卡扣款（即将上线）。</li>
             </ul>
           </div>

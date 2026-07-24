@@ -36,8 +36,8 @@ const STATUS_MAP: Record<OrderStatus, { label: string, color: string }> = {
   pendingPayment: { label: '待付款', color: 'text-orange-500' },
   pendingShipment: { label: '待发货', color: 'text-blue-500' },
   pendingReceipt: { label: '待收货', color: 'text-donghai' },
-  afterSales: { label: '售后中', color: 'text-red-500' },
-  afterSalesCompleted: { label: '售后完成', color: 'text-green-500' },
+  afterSales: { label: '退货中', color: 'text-red-500' },
+  afterSalesCompleted: { label: '退货完成', color: 'text-green-500' },
   afterSalesRejected: { label: '审核失败', color: 'text-red-400' },
   completed: { label: '已完成', color: 'text-gray-400' },
   cancelled: { label: '已取消', color: 'text-gray-300' }
@@ -153,7 +153,7 @@ const OrderListCard = ({
                 <h4 className="text-[13px] font-medium text-gray-800 truncate leading-tight">{item.name}</h4>
                 <div className="flex items-center justify-between mt-1">
                   <span className="text-[11px] text-gray-400 truncate max-w-[120px]">
-                    {Object.values(item.specs).join('/')}
+                    {Object.values(item.specs || {}).join('/')}
                   </span>
                   <div className="flex items-baseline gap-1.5 font-bold">
                     <span className="text-[11px] text-gray-400 font-normal">x{item.quantity}</span>
@@ -224,11 +224,12 @@ const OrderListCard = ({
                   onClick={(e) => {
                     e.stopPropagation();
                     if (onApplyAfterSales && order.items.length > 0) {
-                      onApplyAfterSales(order.id, order.items[0].productId);
+                      const prodId = order.items.length === 1 ? order.items[0].productId : undefined;
+                      onApplyAfterSales(order.id, prodId as any);
                     }
                   }}
                 >
-                  售后
+                  退货
                 </Button>
               )}
               {(order.status === 'afterSales' || order.status === 'afterSalesCompleted' || order.status === 'afterSalesRejected' || (order.status === 'completed' && hasAppliedAfterSales)) && (
@@ -239,11 +240,12 @@ const OrderListCard = ({
                   onClick={(e) => {
                     e.stopPropagation();
                     if (onShowAfterSales && order.items.length > 0) {
-                      onShowAfterSales(order.id, order.items[0].productId);
+                      const prodId = order.items.length === 1 ? order.items[0].productId : undefined;
+                      onShowAfterSales(order.id, prodId as any);
                     }
                   }}
                 >
-                  查看售后详情
+                  查看退货详情
                 </Button>
               )}
               <Button 
@@ -597,11 +599,12 @@ const OrderDetail = ({ order, onBack, onShowLogistics, onApplyAfterSales, onShow
                 className="rounded-full text-xs h-9 px-6 border-orange-500 text-orange-500 hover:bg-orange-50 font-bold"
                 onClick={() => {
                   if (onApplyAfterSales && order.items.length > 0) {
-                    onApplyAfterSales(order.items[0].productId);
+                    const prodId = order.items.length === 1 ? order.items[0].productId : undefined;
+                    onApplyAfterSales(prodId as any);
                   }
                 }}
               >
-                售后
+                退货
               </Button>
             )}
             <Button 
@@ -641,11 +644,12 @@ const OrderDetail = ({ order, onBack, onShowLogistics, onApplyAfterSales, onShow
             className="rounded-full text-xs h-9 px-6 border-orange-500 text-orange-500 hover:bg-orange-50 font-bold"
             onClick={() => {
               if (onShowAfterSales && order.items.length > 0) {
-                onShowAfterSales(order.id, order.items[0].productId);
+                const prodId = order.items.length === 1 ? order.items[0].productId : undefined;
+                onShowAfterSales(order.id, prodId as any);
               }
             }}
           >
-            查看售后详情
+            查看退货详情
           </Button>
         )}
       </div>

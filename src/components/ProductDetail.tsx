@@ -126,6 +126,29 @@ export default function ProductDetail({
   const currentPrice = calculatePrice();
   const currentPoints = product.isPointsOnly ? calculatePoints() : product.points;
 
+  const currentOriginalPrice = (() => {
+    let orig = product.originalPrice;
+    if (!orig) {
+      orig = Math.round((product.points || product.price || 0) * 1.5);
+    }
+    if (product.price && product.price > 0 && currentPrice !== product.price) {
+      const ratio = currentPrice / product.price;
+      orig = Math.round(orig * ratio);
+    }
+    return orig;
+  })();
+
+  const isApprovedEmployee = Boolean(userInfo?.isEmployee && userInfo?.employeeAuth?.status === 'approved');
+
+  // Effective price and points: discount price only for authenticated employees
+  const effectivePoints = isApprovedEmployee 
+    ? (currentPoints || currentPrice) 
+    : currentOriginalPrice;
+
+  const effectivePrice = isApprovedEmployee 
+    ? currentPrice 
+    : currentOriginalPrice;
+
   useEffect(() => {
     // Simulate loading
     const timer = setTimeout(() => setIsLoading(false), 600);
@@ -166,7 +189,7 @@ export default function ProductDetail({
 
     // Points check (All products are redeemed with points)
     if (userInfo) {
-      const pointsPerItem = product.points || product.price || 0;
+      const pointsPerItem = effectivePoints;
       const totalPointsNeeded = pointsPerItem * quantity;
       if (userInfo.points < totalPointsNeeded) {
         setInsufficientPointsConfig({ needed: totalPointsNeeded, current: userInfo.points });
@@ -181,8 +204,8 @@ export default function ProductDetail({
       productId: product.id,
       name: product.name,
       image: product.images[0],
-      price: currentPrice,
-      points: currentPoints,
+      price: effectivePrice,
+      points: effectivePoints,
       isPointsOnly: product.isPointsOnly,
       specs: selectedSpecs,
       quantity: quantity
@@ -229,26 +252,14 @@ export default function ProductDetail({
       }
     }
 
-    // Points Only Check
-    // Removed validation for adding to cart as per user request: "加入对换车不需要校验当前积分是否可以购买当前商品"
-    /*
-    if (product.isPointsOnly && userInfo) {
-      const totalPointsNeeded = currentPoints * quantity;
-      if (userInfo.points < totalPointsNeeded) {
-        setErrorMsg('您的积分余额不足，请先购买积分或积累积分');
-        return;
-      }
-    }
-    */
-
     setIsAddingToCart(true);
     try {
       await addToCart({
         productId: product.id,
         name: product.name,
         image: product.images[0],
-        price: currentPrice,
-        points: currentPoints,
+        price: effectivePrice,
+        points: effectivePoints,
         isPointsOnly: product.isPointsOnly,
         specs: selectedSpecs,
         quantity: quantity
@@ -349,16 +360,32 @@ export default function ProductDetail({
 
         {/* Info Section */}
         <div className="bg-white p-4 space-y-3">
-          <div className="flex items-baseline gap-2">
-            <div className="flex items-center gap-1 text-donghai text-2xl font-bold">
-              <Coins className="w-5 h-5" />
-              <span>{product.points || currentPrice}</span>
-              <span className="text-xs font-normal text-gray-500 ml-1">积分</span>
-            </div>
-            {product.isInternal && (
-              <Badge className="bg-blue-500 text-white text-[10px] border-none ml-2">
-                员工内购
-              </Badge>
+          <div className="flex items-baseline gap-2 flex-wrap">
+            {isApprovedEmployee ? (
+              <div className="flex items-baseline gap-1.5">
+                <span className="text-[10px] font-medium bg-red-50 text-red-500 border border-red-100 px-1.5 py-0.5 rounded">
+                  折扣价
+                </span>
+                <div className="flex items-center gap-1 text-donghai text-2xl font-bold">
+                  <Coins className="w-5 h-5" />
+                  <span>{effectivePoints}</span>
+                  <span className="text-xs font-normal text-gray-500 ml-0.5">积分</span>
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-baseline gap-1.5">
+                <div className="flex items-center gap-1 text-donghai text-2xl font-bold">
+                  <Coins className="w-5 h-5" />
+                  <span>{effectivePoints}</span>
+                  <span className="text-xs font-normal text-gray-500 ml-0.5">积分</span>
+                </div>
+              </div>
+            )}
+
+            {isApprovedEmployee && currentOriginalPrice > effectivePoints && (
+              <span className="text-xs font-normal text-gray-400 line-through ml-1">
+                原价 {currentOriginalPrice} 积分
+              </span>
             )}
             {product.isPointsOnly && (
               <Badge className="bg-donghai/10 text-donghai text-[10px] border-none ml-2">
@@ -443,11 +470,6 @@ export default function ProductDetail({
           <div className="text-xs font-bold text-gray-800 mb-4">商品详情</div>
           <div className="text-xs text-gray-500 leading-relaxed space-y-4">
             <p>{product.description}</p>
-            <div className="grid grid-cols-1 gap-2">
-              {product.images.map((img, i) => (
-                <img key={i} src={img} alt="detail" className="w-full rounded-lg" referrerPolicy="no-referrer" />
-              ))}
-            </div>
           </div>
         </div>
       </div>
@@ -525,8 +547,8 @@ export default function ProductDetail({
                 <div className="w-full p-6 pt-5 pb-8 flex justify-between gap-4">
                   <div className="flex-1">
                     <div className="text-xl font-bold text-donghai mb-1.5 flex items-baseline gap-0.5">
-                      {product.points || product.price}
-                      <span className="text-[12px] ml-1">{product.points ? '积分' : '元'}</span>
+                      {effectivePoints}
+                      <span className="text-[12px] ml-1">积分</span>
                     </div>
                     <h3 className="text-[14px] font-bold text-gray-800 line-clamp-2 leading-relaxed">
                       {product.name}

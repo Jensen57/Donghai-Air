@@ -96,9 +96,12 @@ export default function PointsCenter({ onBack }: { onBack: () => void }) {
         {/* Unified Transaction Details & Filters Section */}
         <div className="bg-white rounded-[24px] p-4 shadow-sm border border-gray-50 flex flex-col min-h-[300px]">
           {/* Sub Header */}
-          <div className="flex items-center border-b border-gray-50 pb-3 mb-3">
-            <div className="w-1 h-3 bg-donghai rounded-full mr-2" />
-            <h3 className="text-sm font-bold text-gray-800">积分明细</h3>
+          <div className="flex items-center justify-between border-b border-gray-50 pb-3 mb-3">
+            <div className="flex items-center">
+              <div className="w-1 h-3 bg-donghai rounded-full mr-2" />
+              <h3 className="text-sm font-bold text-gray-800">积分明细</h3>
+            </div>
+            <span className="text-[10px] text-gray-400 font-normal">仅支持查看近一年的记录</span>
           </div>
 
           {/* Quick Type Tabs */}
@@ -136,10 +139,12 @@ export default function PointsCenter({ onBack }: { onBack: () => void }) {
                         )}
                       </div>
                       <div>
-                        <div className="text-xs font-bold text-gray-700">{record.description}</div>
+                        <div className="text-xs font-bold text-gray-700">
+                          {record.description?.replace(/\s*\([^)]*订单号[^)]*\)/g, '').replace(/\s*订单号[：:][A-Za-z0-9_-]+/g, '').trim()}
+                        </div>
                         {record.amount > 0 && ['purchase', 'compensation', 'refund', 'bonus'].includes(record.type) ? (
                           <div className="space-y-0.5 mt-0.5">
-                            <div className="text-[9px] text-gray-400">下单时间：{record.createdAt}</div>
+                            <div className="text-[9px] text-gray-400">时间：{record.createdAt}</div>
                             <div className="text-[9px] text-amber-600 font-medium">积分到期时间：{getExpiryDate(record.createdAt)}</div>
                           </div>
                         ) : (

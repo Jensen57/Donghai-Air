@@ -134,7 +134,7 @@ export default function LoginOverlay({ isOpen, onClose, startStep = 'auth' }: Lo
                 
                 <h2 className="text-lg font-bold mb-2">申请获取并验证你的手机号</h2>
                 <p className="text-xs text-gray-500 mb-6 leading-relaxed">
-                  实现网上购物所必须的功能及保证保障交易安全所必须的功能。例如账户注册、登录与验证、下单、配送服务、客服及售后等功能
+                  实现网上购物所必须的功能及保证保障交易安全所必须的功能。例如账户注册、登录与验证、下单、配送服务、客服及退货等功能
                 </p>
 
                 {error && (

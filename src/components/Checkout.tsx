@@ -136,34 +136,27 @@ export default function Checkout({
 
     setIsSubmitting(true);
     try {
-      // Create separate orders for each item so they can be managed / requested for after-sales individually
-      const createdIds: string[] = [];
-      for (const item of checkoutItemsList) {
-        const itemTotalPoints = (item.points || item.price || 0) * item.quantity;
-        const itemTotalPrice = (item.price || 0) * item.quantity;
+      const itemsForOrder = checkoutItemsList.map(item => ({
+        productId: item.productId,
+        name: item.name,
+        image: item.image,
+        price: item.price,
+        points: item.points,
+        isPointsOnly: item.isPointsOnly,
+        specs: item.specs,
+        quantity: item.quantity
+      }));
 
-        const id = await addOrder({
-          items: [{
-            productId: item.productId,
-            name: item.name,
-            image: item.image,
-            price: item.price,
-            points: item.points,
-            isPointsOnly: item.isPointsOnly,
-            specs: item.specs,
-            quantity: item.quantity
-          }],
-          totalAmount: itemTotalPrice,
-          totalPoints: itemTotalPoints,
-          address: defaultAddress,
-          paymentMethod: isPurePoints ? '积分兑换' : paymentMethod
-        });
-        createdIds.push(id);
-      }
+      const id = await addOrder({
+        items: itemsForOrder,
+        totalAmount: totalPrice,
+        totalPoints: totalPoints,
+        address: defaultAddress,
+        paymentMethod: isPurePoints ? '积分兑换' : paymentMethod
+      });
 
-      const idsStr = createdIds.join(', ');
-      setOrderId(idsStr);
-      lastOrderId.current = idsStr;
+      setOrderId(id);
+      lastOrderId.current = id;
       setIsSubmitting(false);
       
       setShowPayment(true);

@@ -104,6 +104,8 @@ useEffect(() => {
 
   const { userInfo, addToCart, showNotification } = useAuth();
 
+  const isApprovedEmployee = Boolean(userInfo?.isEmployee && userInfo?.employeeAuth?.status === 'approved');
+
   const handleAddToCart = async (e: React.MouseEvent, product: Product) => {
     e.stopPropagation();
     if (!userInfo) {
@@ -117,13 +119,17 @@ useEffect(() => {
       });
     }
 
+    const itemPoints = isApprovedEmployee
+      ? (product.points || product.price)
+      : (product.originalPrice || Math.round((product.points || product.price || 0) * 1.5));
+
     try {
       await addToCart({
         productId: product.id,
         name: product.name,
         image: product.images[0],
-        price: product.price || 0,
-        points: product.points,
+        price: itemPoints,
+        points: itemPoints,
         isPointsOnly: product.isPointsOnly,
         specs: defaultSpecs,
         quantity: 1
@@ -234,19 +240,28 @@ useEffect(() => {
   }
 
   const filteredProducts = (() => {
+    let list = [];
     if (activeCategory === "员工专区") {
-      return INTERNAL_PRODUCTS;
+      list = [...INTERNAL_PRODUCTS];
+    } else if (activeCategory === "咖啡") {
+      list = DETAILED_PRODUCTS.filter(p => p.category === "咖啡饮品");
+    } else if (activeCategory === "茶") {
+      list = DETAILED_PRODUCTS.filter(p => p.category === "精选茗茶");
+    } else if (activeCategory === "机模") {
+      list = DETAILED_PRODUCTS.filter(p => p.category === "航空周边");
+    } else {
+      list = [...DETAILED_PRODUCTS];
     }
-    if (activeCategory === "咖啡") {
-      return DETAILED_PRODUCTS.filter(p => p.category === "咖啡饮品");
+
+    if (isApprovedEmployee) {
+      return list.map(product => {
+        const internalCounterpart = INTERNAL_PRODUCTS.find(
+          empProduct => empProduct.name === `【员工内购】${product.name}`
+        );
+        return internalCounterpart || product;
+      });
     }
-    if (activeCategory === "茶") {
-      return DETAILED_PRODUCTS.filter(p => p.category === "精选茗茶");
-    }
-    if (activeCategory === "机模") {
-      return DETAILED_PRODUCTS.filter(p => p.category === "航空周边");
-    }
-    return DETAILED_PRODUCTS;
+    return list;
   })();
 
   const showEmployee = userInfo?.isEmployee && userInfo?.employeeAuth?.status === 'approved';
@@ -372,7 +387,11 @@ useEffect(() => {
                 </h3>
                 <div className="flex items-center justify-between mt-auto">
                   <div className="flex items-baseline gap-0.5">
-                    <span className="text-[#e02e24] font-bold text-[14px] leading-none">{product.points || product.price}</span>
+                    <span className="text-[#e02e24] font-bold text-[14px] leading-none">
+                      {isApprovedEmployee 
+                        ? (product.points || product.price) 
+                        : (product.originalPrice || Math.round((product.points || product.price || 0) * 1.5))}
+                    </span>
                     <span className="text-[#e02e24] text-[9px] ml-0.5 font-medium">积分</span>
                   </div>
                   <Button
