@@ -107,6 +107,9 @@ export interface CompensationRecord {
   id: string;
   type: CompensationType;
   flightNo: string;
+  ticketNo?: string;
+  depAirport?: string;
+  arrAirport?: string;
   flightDate: string;
   passengerName: string;
   passengerIdCard: string;
@@ -268,6 +271,9 @@ const DEFAULT_USER_DATA: Partial<UserInfo> = {
       id: 'CP20260418001',
       type: 'points',
       flightNo: 'DZ6201',
+      ticketNo: '777-2489102831',
+      depAirport: '深圳宝安国际机场',
+      arrAirport: '上海虹桥国际机场',
       flightDate: '2026-04-18',
       passengerName: '张三',
       passengerIdCard: '[身份证] 440301199001011234',
@@ -282,6 +288,9 @@ const DEFAULT_USER_DATA: Partial<UserInfo> = {
       id: 'CP20260410002',
       type: 'cash',
       flightNo: 'DZ6202',
+      ticketNo: '777-2489102832',
+      depAirport: '上海虹桥国际机场',
+      arrAirport: '深圳宝安国际机场',
       flightDate: '2026-04-10',
       passengerName: '张三',
       passengerIdCard: '[身份证] 440301199001011234',

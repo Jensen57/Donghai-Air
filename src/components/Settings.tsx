@@ -418,7 +418,7 @@ function PayPasswordPage({ userInfo, onBack, updateUser }: { userInfo: any, onBa
               </div>
               <h4 className="text-sm font-bold text-gray-800">找回支付密码</h4>
               <p className="text-xs text-gray-500 mt-2">
-                请联系客服处理，电话：4009908619
+                请联系客服处理，电话：4000888666
               </p>
               <div className="mt-5 flex gap-2">
                 <Button 
@@ -431,7 +431,7 @@ function PayPasswordPage({ userInfo, onBack, updateUser }: { userInfo: any, onBa
                 <Button 
                   className="flex-1 rounded-full bg-donghai hover:bg-donghai/90 text-white font-bold h-10 text-xs"
                   onClick={() => {
-                    window.location.href = 'tel:4009908619';
+                    window.location.href = 'tel:4000888666';
                     setShowSupportModal(false);
                   }}
                 >

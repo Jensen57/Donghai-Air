@@ -14,11 +14,17 @@ import {
   User,
   CreditCard,
   ChevronDown,
-  Plus
+  Plus,
+  Ticket,
+  PlaneTakeoff,
+  PlaneLanding,
+  ArrowLeftRight,
+  MapPin
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { useAuth, CompensationRecord, CompensationStatus } from '../context/AuthContext';
+import AirportInput from './AirportInput';
 
 const STATUS_MAP: Record<CompensationStatus, { label: string, color: string, icon: any }> = {
   pendingAudit: { label: '待审核', color: 'text-orange-500', icon: Clock },
@@ -38,6 +44,9 @@ export default function Compensation({ onBack }: { onBack: () => void }) {
 
   // Form states
   const [flightNo, setFlightNo] = useState('');
+  const [ticketNo, setTicketNo] = useState('');
+  const [depAirport, setDepAirport] = useState('');
+  const [arrAirport, setArrAirport] = useState('');
   const [flightDate, setFlightDate] = useState('');
   const [passengerName, setPassengerName] = useState(userInfo?.name || '');
   const [idType, setIdType] = useState<'身份证' | '护照'>('身份证');
@@ -72,10 +81,32 @@ export default function Compensation({ onBack }: { onBack: () => void }) {
     return val;
   };
 
+  const handleSwapAirports = () => {
+    const temp = depAirport;
+    setDepAirport(arrAirport);
+    setArrAirport(temp);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!flightNo.trim()) {
       showNotification?.('提示', '请填写航班号');
+      return;
+    }
+    if (!ticketNo.trim()) {
+      showNotification?.('提示', '请填写电子客票号');
+      return;
+    }
+    if (!depAirport.trim()) {
+      showNotification?.('提示', '请选择或填写出发机场');
+      return;
+    }
+    if (!arrAirport.trim()) {
+      showNotification?.('提示', '请选择或填写到达机场');
+      return;
+    }
+    if (depAirport.trim() === arrAirport.trim()) {
+      showNotification?.('提示', '出发机场与到达机场不能相同');
       return;
     }
     if (!flightDate) {
@@ -95,7 +126,10 @@ export default function Compensation({ onBack }: { onBack: () => void }) {
     try {
       await applyCompensation({
         type: 'points',
-        flightNo: flightNo.toUpperCase(),
+        flightNo: flightNo.toUpperCase().trim(),
+        ticketNo: ticketNo.trim(),
+        depAirport: depAirport.trim(),
+        arrAirport: arrAirport.trim(),
         flightDate,
         passengerName,
         passengerIdCard: `[${idType}] ${passengerIdCard.trim()}`,
@@ -107,6 +141,9 @@ export default function Compensation({ onBack }: { onBack: () => void }) {
       
       // Reset form fields
       setFlightNo('');
+      setTicketNo('');
+      setDepAirport('');
+      setArrAirport('');
       setFlightDate('');
       setPassengerIdCard('');
       setIdType('身份证');
@@ -169,6 +206,25 @@ export default function Compensation({ onBack }: { onBack: () => void }) {
                 <span className="text-gray-400">航班号</span>
                 <span className="font-mono text-gray-800 font-bold">{selectedRecord.flightNo}</span>
               </div>
+              
+              {selectedRecord.ticketNo && (
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-400">电子客票号</span>
+                  <span className="font-mono text-gray-800 font-medium">{selectedRecord.ticketNo}</span>
+                </div>
+              )}
+
+              {(selectedRecord.depAirport || selectedRecord.arrAirport) && (
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-400">航程航段</span>
+                  <div className="flex items-center gap-1.5 text-gray-800 font-medium text-right max-w-[200px]">
+                    <span className="truncate">{selectedRecord.depAirport || '未填写'}</span>
+                    <span className="text-donghai shrink-0">➔</span>
+                    <span className="truncate">{selectedRecord.arrAirport || '未填写'}</span>
+                  </div>
+                </div>
+              )}
+
               <div className="flex justify-between items-center">
                 <span className="text-gray-400">乘机日期</span>
                 <span className="text-gray-800 font-mono">{selectedRecord.flightDate}</span>
@@ -247,8 +303,9 @@ export default function Compensation({ onBack }: { onBack: () => void }) {
           
           {/* Card 1: 航班信息 */}
           <Card className="p-4 border border-gray-100 bg-white rounded-2xl space-y-3 shadow-sm">
-            <div className="text-xs font-bold text-gray-800 border-b border-gray-50 pb-2">
-              <span>航班信息</span>
+            <div className="flex items-center justify-between border-b border-gray-50 pb-2">
+              <span className="text-xs font-bold text-gray-800">航班信息</span>
+              <span className="text-[10px] text-gray-400">请核对机票及行程信息</span>
             </div>
             
             <div className="space-y-2.5">
@@ -263,6 +320,54 @@ export default function Compensation({ onBack }: { onBack: () => void }) {
                   className="bg-transparent border-none outline-none text-xs w-full text-gray-800 placeholder:text-gray-300 font-mono"
                   required
                 />
+              </div>
+
+              {/* Ticket No Input (电子客票号) */}
+              <div className="flex items-center gap-2 bg-gray-50 rounded-xl px-3 py-2.5 border border-transparent focus-within:border-donghai/30 transition-colors">
+                <Ticket className="w-4 h-4 text-gray-400 shrink-0" />
+                <input 
+                  type="text" 
+                  placeholder="请输入13位客票号" 
+                  value={ticketNo}
+                  onChange={(e) => setTicketNo(e.target.value)}
+                  className="bg-transparent border-none outline-none text-xs w-full text-gray-800 placeholder:text-gray-300 font-mono"
+                  required
+                />
+              </div>
+
+              {/* Airports with Fuzzy Search */}
+              <div className="space-y-2.5 relative">
+                {/* Departure Airport */}
+                <AirportInput 
+                  placeholder="请输入机场名"
+                  value={depAirport}
+                  onChange={setDepAirport}
+                  icon={PlaneTakeoff}
+                  required
+                />
+
+                {/* Arrival Airport */}
+                <AirportInput 
+                  placeholder="请输入机场名"
+                  value={arrAirport}
+                  onChange={setArrAirport}
+                  icon={PlaneLanding}
+                  required
+                />
+
+                {/* Swap button */}
+                {(depAirport || arrAirport) && (
+                  <div className="flex justify-end pr-1">
+                    <button
+                      type="button"
+                      onClick={handleSwapAirports}
+                      className="text-[10px] text-donghai font-medium flex items-center gap-1 hover:underline cursor-pointer bg-donghai/5 px-2.5 py-1 rounded-full"
+                    >
+                      <ArrowLeftRight className="w-3 h-3" />
+                      <span>对调出发/到达机场</span>
+                    </button>
+                  </div>
+                )}
               </div>
 
               {/* Flight Date Input */}
@@ -450,7 +555,7 @@ export default function Compensation({ onBack }: { onBack: () => void }) {
 
         {/* List mapping */}
         <div className="space-y-2">
-          {filteredRecords.map((record, idx) => {
+          {filteredRecords.map((record) => {
             const status = STATUS_MAP[record.status] || STATUS_MAP.pendingAudit;
             const Icon = status.icon;
 
@@ -474,9 +579,18 @@ export default function Compensation({ onBack }: { onBack: () => void }) {
 
                 {/* Middle Row */}
                 <div className="flex items-center justify-between py-1">
-                  <div className="flex items-center gap-2">
-                    <Plane className="w-4 h-4 text-donghai" />
-                    <span className="text-sm font-bold text-gray-800 font-mono">{record.flightNo}</span>
+                  <div className="space-y-0.5">
+                    <div className="flex items-center gap-2">
+                      <Plane className="w-4 h-4 text-donghai" />
+                      <span className="text-sm font-bold text-gray-800 font-mono">{record.flightNo}</span>
+                    </div>
+                    {(record.depAirport || record.arrAirport) && (
+                      <div className="text-[11px] text-gray-500 flex items-center gap-1 pl-6">
+                        <span className="truncate max-w-[100px]">{record.depAirport?.replace('国际机场', '').replace('机场', '') || '出发地'}</span>
+                        <span className="text-donghai">➔</span>
+                        <span className="truncate max-w-[100px]">{record.arrAirport?.replace('国际机场', '').replace('机场', '') || '目的地'}</span>
+                      </div>
+                    )}
                   </div>
                   {record.status !== 'rejected' && (
                     <div className="text-sm font-bold text-donghai flex items-center gap-0.5 font-mono">
@@ -532,3 +646,4 @@ export default function Compensation({ onBack }: { onBack: () => void }) {
     </div>
   );
 }
+

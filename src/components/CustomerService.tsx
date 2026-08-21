@@ -7,7 +7,7 @@ interface CustomerServiceProps {
 }
 
 export default function CustomerService({ isOpen, onClose }: CustomerServiceProps) {
-  const servicePhone = '4009908619';
+  const servicePhone = '4000888666';
 
   const handleCall = () => {
     window.location.href = `tel:${servicePhone}`;
@@ -42,7 +42,7 @@ export default function CustomerService({ isOpen, onClose }: CustomerServiceProp
                   {servicePhone}
                 </span>
                 <span className="text-gray-400 text-[10px] font-medium">
-                  咨询时间：周一至周日 09:00 - 21:00
+                  咨询时间：周一至周日24H在线，00：00-23：59
                 </span>
               </div>
               

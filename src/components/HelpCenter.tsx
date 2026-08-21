@@ -111,7 +111,7 @@ export default function HelpCenter({ onBack, initialSearch = '' }: { onBack: () 
         <div className="p-4">
           <Card 
             className="p-4 border-none shadow-sm flex items-center justify-between active:bg-gray-50 transition-colors cursor-pointer bg-white rounded-2xl" 
-            onClick={() => window.location.href = 'tel:010-888888'}
+            onClick={() => window.location.href = 'tel:4000888666'}
           >
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 rounded-full bg-green-50 flex items-center justify-center shrink-0">
@@ -119,12 +119,12 @@ export default function HelpCenter({ onBack, initialSearch = '' }: { onBack: () 
               </div>
               <div>
                 <span className="text-sm font-bold text-gray-800 block">电话客服</span>
-                <span className="text-[10px] text-gray-400">周一至周日 09:00 - 21:00</span>
+                <span className="text-[10px] text-gray-400">周一至周日24H在线，00：00-23：59</span>
               </div>
             </div>
             <div className="flex items-center gap-1 bg-green-500/10 text-green-600 px-3 py-1.5 rounded-full text-[10px] font-bold">
               <Phone className="w-3 h-3" />
-              <span>拨打 010-888888</span>
+              <span>拨打 4000888666</span>
             </div>
           </Card>
         </div>
